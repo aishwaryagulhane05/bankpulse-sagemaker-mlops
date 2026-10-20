@@ -63,7 +63,8 @@ def _s3_call(method: str, **kwargs):
                            'on a laptop, set AWS_PROFILE to your lab profile (see issue BP-400).') from exc
 
 
-def _read_bytes(path: PathLike) -> bytes:
+def read_bytes(path: PathLike) -> bytes:
+    """The raw bytes of a local file or S3 object."""
     if is_s3(path):
         bucket, key = split_s3_uri(path)
         return _s3_call('get_object', Bucket=bucket, Key=key)['Body'].read()
@@ -86,7 +87,7 @@ def _write_bytes(data: bytes, path: PathLike) -> Union[str, Path]:
 
 def read_csv(path: PathLike, sep: str = ',', header: Union[int, None] = 0) -> pd.DataFrame:
     """Read a CSV file; header=None for files without a header row (XGBoost format)."""
-    return pd.read_csv(io.BytesIO(_read_bytes(path)), sep=sep, header=header)
+    return pd.read_csv(io.BytesIO(read_bytes(path)), sep=sep, header=header)
 
 
 def write_csv(df: pd.DataFrame, path: PathLike, header: bool = True, sep: str = ',') -> Union[str, Path]:
@@ -97,7 +98,7 @@ def write_csv(df: pd.DataFrame, path: PathLike, header: bool = True, sep: str = 
 
 
 def read_json(path: PathLike) -> Any:
-    return json.loads(_read_bytes(path).decode('utf-8'))
+    return json.loads(read_bytes(path).decode('utf-8'))
 
 
 def write_json(obj: Any, path: PathLike) -> Union[str, Path]:
@@ -112,7 +113,7 @@ def write_json(obj: Any, path: PathLike) -> Union[str, Path]:
 def file_hash(path: PathLike) -> str:
     """SHA-256 of the file's bytes, as 64 hex characters (local file or S3 object)."""
     if is_s3(path):
-        return hashlib.sha256(_read_bytes(path)).hexdigest()
+        return hashlib.sha256(read_bytes(path)).hexdigest()
     digest = hashlib.sha256()
     with open(path, 'rb') as handle:
         for chunk in iter(lambda: handle.read(_CHUNK_SIZE), b''):
