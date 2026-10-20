@@ -7,6 +7,7 @@ Building blocks (this module):
     encode_target(series, label)  "yes"/"no" -> 1/0
     build_schema(...)             column order + every feature's state (feature_schema.json)
     write_outputs(...)            files in the built-in XGBoost CSV format
+    encode_records(records, schema)   raw records -> model input rows, for the endpoint
 
 Output layout (one folder per S3 prefix, see below):
     train/train.csv                          label first, no header   -> training channel
@@ -22,12 +23,12 @@ files each get a folder of their own; feature-only and label files never sit nex
 import importlib
 import logging
 from pathlib import Path
-from typing import Dict, Mapping, Sequence, Union
+from typing import Dict, List, Mapping, Sequence, Union
 
 import pandas as pd
 
 from bankpulse_core.contract import check_rules, check_schema, drop_forbidden, load_contract
-from bankpulse_core.feature_base import Feature, check_inputs, resolve
+from bankpulse_core.feature_base import Feature, check_inputs, get_feature, resolve
 from bankpulse_core.io import read_csv, write_csv, write_json
 from bankpulse_core.lineage import start_run
 from bankpulse_core.log_utils import log_stage, setup_logging
@@ -60,10 +61,13 @@ def encode_target(series: pd.Series, positive_label: str) -> pd.Series:
     return (series.astype(str) == str(positive_label)).astype(int).rename(series.name)
 
 
-def build_schema(features: Sequence[Feature], columns: Sequence[str], target: str, positive_label: str) -> Dict:
+def build_schema(features: Sequence[Feature], columns: Sequence[str], target: str, positive_label: str,
+                 feature_package: str) -> Dict:
     """Everything the endpoint needs to encode a raw record exactly like the training data."""
     return {
         'schema_version': SCHEMA_VERSION,
+        # Importing this package registers the feature classes listed below.
+        'feature_package': feature_package,
         'target': target,
         'positive_label': str(positive_label),
         # Column order of every feature file; the model's inputs are positional.
@@ -176,7 +180,8 @@ def run(config: Mapping) -> Dict:
         matrices = {name: build_matrix(features, part) for name, part in splits.items()}
         labels = {name: encode_target(part[contract.target], contract.positive_label)
                   for name, part in splits.items()}
-        schema = build_schema(features, list(matrices['train'].columns), contract.target, contract.positive_label)
+        schema = build_schema(features, list(matrices['train'].columns), contract.target, contract.positive_label,
+                              config['feature_package'])
         # Last gate: nothing is written unless every split passes.
         check_outputs(matrices, labels, schema, contract.forbidden_columns)
 
@@ -191,3 +196,37 @@ def run(config: Mapping) -> Dict:
                 ', '.join(f'{name}: {len(part)} rows' for name, part in splits.items()))
     return {'outputs': written, 'run_metadata': str(metadata_path),
             'split_summary': lineage.metadata['split_summary'], 'n_columns': len(schema['columns'])}
+
+
+# ---- inference: raw records -> model input rows -------------------------------------------
+
+def load_features(schema: Mapping) -> List[Feature]:
+    """Rebuild the fitted features from feature_schema.json, without refitting.
+
+    Each feature gets back exactly the state it learned on the training split, so live
+    records are encoded with the training caps and category lists.
+    """
+    importlib.import_module(schema['feature_package'])
+    return [get_feature(item['name'], item['version'])().load_state(item['state']) for item in schema['features']]
+
+
+def encode_records(records: Union[pd.DataFrame, Sequence[Mapping]], schema: Mapping) -> pd.DataFrame:
+    """Raw customer records (as in the raw file, without y) -> feature rows in schema order."""
+    # Step 1: accept a DataFrame or a list of dicts (e.g. records from an application).
+    frame = records if isinstance(records, pd.DataFrame) else pd.DataFrame(list(records))
+    if frame.empty:
+        raise PipelineError('No records to encode')
+    # Step 2: the same fitted features as training, in the same order.
+    matrix = build_matrix(load_features(schema), frame)
+    # Step 3: the model reads columns by position, so the order must match training exactly.
+    if list(matrix.columns) != list(schema['columns']):
+        raise PipelineError('Encoded columns differ from feature_schema.json; was the schema built by another version?')
+    bad = matrix.columns[matrix.isna().any()].tolist()
+    if bad:
+        raise PipelineError(f'Missing values after encoding in {bad[:5]}; check the raw records')
+    return matrix
+
+
+def to_csv_payload(matrix: pd.DataFrame) -> str:
+    """Rows as the text/csv body InvokeEndpoint expects: no header, no index, one row per line."""
+    return matrix.to_csv(header=False, index=False, lineterminator='\n')

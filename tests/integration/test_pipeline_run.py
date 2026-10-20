@@ -88,3 +88,16 @@ def test_broken_feature_fails_the_run_and_writes_nothing(tmp_path, monkeypatch):
     with pytest.raises(PipelineError, match=r"non-numeric columns \['job_as_text'\]"):
         run(config)
     assert not any(tmp_path.iterdir())
+
+
+def test_encoding_raw_test_records_matches_batch_input_file(first_run):
+    # The endpoint path (raw records -> encode_records) must give byte-identical rows to the
+    # batch path (pipeline.run -> test_features.csv), or live scores would differ from evaluation.
+    from bankpulse_core.pipeline import encode_records, to_csv_payload
+
+    schema = read_json(first_run['outputs']['feature_schema'])
+    raw = pd.read_csv(CONFIG['data']['path'], sep=';')
+    newest = raw.iloc[-200:].drop(columns=['y', 'duration'])           # "new" customers, no label
+    with open(first_run['outputs']['test_features'], encoding='utf-8') as handle:
+        batch_rows = handle.read().splitlines()[-200:]
+    assert to_csv_payload(encode_records(newest.to_dict('records'), schema)).splitlines() == batch_rows

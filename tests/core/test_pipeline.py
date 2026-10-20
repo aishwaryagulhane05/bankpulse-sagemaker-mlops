@@ -1,14 +1,16 @@
 """Tests for bankpulse_core.pipeline."""
 
 import json
+import sys
+import types
 
 import pandas as pd
 import pytest
 
-from bankpulse_core.feature_base import Feature
+from bankpulse_core.feature_base import Feature, FeatureError
 from bankpulse_core.io import read_json
-from bankpulse_core.pipeline import (PipelineError, build_matrix, build_schema, check_outputs, encode_target,
-                                     write_outputs)
+from bankpulse_core.pipeline import (PipelineError, build_matrix, build_schema, check_outputs, encode_records,
+                                     encode_target, to_csv_payload, write_outputs)
 
 
 # Two small, unregistered features: core tests never import the features package.
@@ -31,8 +33,11 @@ class Capped(Feature):
     def _state(self):
         return {'cap': self.cap}
 
+    def _load_state(self, state):
+        self.cap = state['cap']
 
-TRAIN = pd.DataFrame({'x': [1, 2, 3], 'y': ['no', 'yes', 'no']}, index=[0, 1, 2])
+
+TRAIN =pd.DataFrame({'x': [1, 2, 3], 'y': ['no', 'yes', 'no']}, index=[0, 1, 2])
 TEST = pd.DataFrame({'x': [10, 1], 'y': ['yes', 'no']}, index=[3, 4])
 
 
@@ -57,7 +62,7 @@ def test_target_is_encoded_as_one_for_positive_label():
 
 def test_schema_holds_column_order_and_feature_states():
     features = fitted()
-    schema = build_schema(features, ['doubled', 'capped'], 'y', 'yes')
+    schema = build_schema(features, ['doubled', 'capped'], 'y', 'yes', 'tests')
     assert schema['columns'] == ['doubled', 'capped']
     assert schema['features'][1] == {'name': 'capped', 'version': 'v1', 'inputs': ['x'], 'state': {'cap': 3.0}}
     json.dumps(schema)
@@ -68,7 +73,7 @@ def write_all(tmp_path):
     splits = {'train': TRAIN, 'validation': TEST, 'test': TEST}
     matrices = {name: build_matrix(features, part) for name, part in splits.items()}
     labels = {name: encode_target(part['y'], 'yes') for name, part in splits.items()}
-    schema = build_schema(features, list(matrices['train'].columns), 'y', 'yes')
+    schema = build_schema(features, list(matrices['train'].columns), 'y', 'yes', 'tests')
     return write_outputs(matrices, labels, schema, tmp_path)
 
 
@@ -145,3 +150,42 @@ def test_all_problems_are_listed_at_once():
     with pytest.raises(PipelineError) as error:
         check(matrix=GOOD_MATRIX[['b', 'a']].assign(a=['x', 'y']), labels=pd.Series([5, 1], index=[7, 8]))
     assert str(error.value).count('\n- ') == 3
+
+
+# ---- encode_records ---------------------------------------------------------------------------
+
+@pytest.fixture
+def schema(monkeypatch):
+    """A schema for Doubled and Capped, registered in a throwaway registry and fake package."""
+    from bankpulse_core import feature_base
+
+    monkeypatch.setattr(feature_base, '_REGISTRY', {})
+    monkeypatch.setitem(sys.modules, 'fake_features', types.ModuleType('fake_features'))
+    feature_base.register(Doubled)
+    feature_base.register(Capped)
+    return json.loads(json.dumps(build_schema(fitted(), ['doubled', 'capped'], 'y', 'yes', 'fake_features')))
+
+
+def test_records_are_encoded_with_training_state(schema):
+    # The cap learned on TRAIN (3) applies to a live record with x = 10.
+    matrix = encode_records([{'x': 10}, {'x': 1}], schema)
+    assert matrix.values.tolist() == [[20, 3], [2, 1]]
+
+
+def test_csv_payload_has_no_header_or_index(schema):
+    assert to_csv_payload(encode_records(pd.DataFrame({'x': [10, 1]}), schema)) == '20,3\n2,1\n'
+
+
+def test_record_missing_an_input_is_rejected(schema):
+    with pytest.raises(FeatureError, match=r"needs column\(s\) \['x'\]"):
+        encode_records([{'age': 30}], schema)
+
+
+def test_no_records_is_rejected(schema):
+    with pytest.raises(PipelineError, match='No records'):
+        encode_records([], schema)
+
+
+def test_schema_column_mismatch_is_rejected(schema):
+    with pytest.raises(PipelineError, match='differ from feature_schema.json'):
+        encode_records([{'x': 1}], {**schema, 'columns': ['capped', 'doubled']})
