@@ -2,7 +2,7 @@
 
 An end-to-end MLOps system that predicts whether a bank customer will subscribe to a term deposit, **before** the call is made. It uses a tested Python framework for the data, and AWS SageMaker for training, batch scoring, the model registry, the Model Card, a real-time endpoint with Data Capture, and monitoring with Amazon CloudWatch.
 
-> **Status:** complete. Every stage has run end to end in an AWS Academy Learner Lab (`us-east-1`), and the framework has 228 passing tests.
+> **Status:** complete. Every stage has run end to end in an AWS Academy Learner Lab (`us-east-1`), and the framework and UI have 245 passing tests.
 
 ![Architecture: local framework, SageMaker components in the AWS lab, and monitoring](architecture/architecture.png)
 
@@ -168,6 +168,27 @@ The notebooks also run unchanged in SageMaker Studio, where Studio's execution r
 - **To clean up:** in notebook 05, run the setup cell, set `CLEAN_UP = True` in the last cell, and run only that cell. It deletes the endpoint, its configuration and model (and a monitoring schedule, if one exists) and prints the endpoints still running.
 - **Kept, costing nothing or almost nothing:** S3 objects, the registry, the Model Card and CloudWatch.
 
+## Results UI
+
+A Streamlit app for tracking the project in SageMaker and querying the endpoint:
+
+```bash
+streamlit run ui/app.py
+```
+
+Pick a section in the sidebar:
+
+| Section | What it shows |
+|---|---|
+| Overview | What the project is, the problem, why it matters, who it is for, how it helps the end user, and what it must not be used for |
+| SageMaker tracking | **Live, read-only** status from the lab: S3 data lake folders, training job (status, billable time, metrics, hyperparameters), Batch Transform jobs, Model Registry versions and approval notes, Model Card, endpoint and Data Capture, each with a link to the console |
+| Model results | Baseline vs XGBoost per split, confusion matrices, hyperparameter search |
+| Monitoring | Feature PSI chart, age-band selection rates, alerts, and the live CloudWatch alarm state |
+| Score customers | One customer from a form (pre-call fields only), or the newest N customers, scored by the **live endpoint**. Shows probability, threshold decision, ranking and score distribution |
+
+- **Offline (no lab credentials):** the app shows the saved reports.
+- **Connected (`~/.aws/credentials` holds a valid `[bankpulse-lab]` profile):** the app also reads live status. It only describes and lists resources, never changes them. Scoring calls the endpoint while it is InService; those requests are recorded by Data Capture too.
+
 ## Screenshots
 
 Executed copies of the notebooks, with all outputs, are saved locally in `notebooks/executed/`, which is git-ignored because outputs show the account ID. Console screenshots for each stage are listed in the "Screenshots" checklist of the matching GitHub issue (#34–#55):
@@ -193,7 +214,8 @@ bankpulse-sagemaker-mlops/
 ├── notebooks/           01-05, committed without outputs (executed/ copies stay local)
 ├── reports/             quality, baseline, tuning, XGBoost, comparison, monitoring, managed-monitoring results
 ├── scripts/             check_aws, quality_report, baseline, tune_xgboost
-├── tests/               core/, features/, integration/ (228 tests)
+├── ui/                  Streamlit results UI: app, tracking (read-only AWS status), scoring, content
+├── tests/               core/, features/, integration/, ui/ (245 tests)
 ├── pyproject.toml       pip install -e .
 └── requirements.txt
 ```

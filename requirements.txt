@@ -11,5 +11,7 @@ pytest>=8.0
 ipykernel>=6.0
 # Local hyperparameter search (scripts/tune_xgboost.py): same version as SageMaker's XGBoost 1.7-1
 xgboost==1.7.6
+# Results UI (streamlit run ui/app.py)
+streamlit>=1.38,<2
 # Architecture diagram (architecture/make_diagram.py) and notebook charts
 matplotlib>=3.7
