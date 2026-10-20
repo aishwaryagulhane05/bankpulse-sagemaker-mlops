@@ -7,7 +7,8 @@ import pandas as pd
 import pytest
 
 from bankpulse_core import io as bankpulse_io
-from bankpulse_core.io import file_hash, list_objects, read_csv, read_json, split_s3_uri, upload_file, write_csv, write_json
+from bankpulse_core.io import (file_hash, list_objects, read_csv, read_json, split_s3_uri, upload_file, write_csv,
+                               write_json)
 
 FRAME = pd.DataFrame({'age': [30, 45], 'job': ['admin.', 'unknown'], 'euribor3m': [4.857, 0.635]})
 
