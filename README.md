@@ -2,7 +2,7 @@
 
 An end-to-end MLOps system that predicts customer term deposit subscriptions using XGBoost, with AWS SageMaker for training, model registry, batch and real-time inference, and Amazon S3 and CloudWatch for monitoring.
 
-> **Status:** project set-up. The dataset is in place and the notebooks and source files are created as labelled placeholders. The implementation is being built step by step in AWS SageMaker Studio.
+> **Status:** Phase 2 (feature engine) complete. The time-ordered splitter, encoding helpers, feature interface and registry, and 12 versioned features are implemented and tested. The other framework modules and the notebooks are still labelled placeholders; the SageMaker work is being built step by step in AWS SageMaker Studio.
 
 ## Problem
 
@@ -85,10 +85,10 @@ bankpulse-sagemaker-mlops/
 │   ├── monitoring.py             Drift and subgroup checks
 │   └── log_utils.py              Shared logging setup
 ├── features/                     FEATURES: business logic, one module per group
-│   ├── contact_history.py        previously_contacted, prior_success
+│   ├── contact_history.py        previously_contacted, prior_success, previous_contacts
 │   ├── campaign.py               campaign_intensity, capped_campaign
-│   ├── economic.py               euribor_trend, employment_level
-│   └── client_profile.py         age_band, job_group
+│   ├── economic.py               euribor_rate, employment_level, economic_indicators
+│   └── client_profile.py         age, age_band, categorical_profile, contact_timing
 ├── config/
 │   ├── data_prep.yaml            Data source, splits, enabled features and versions
 │   └── contract.yaml             Allowed/forbidden columns and rules
@@ -109,6 +109,39 @@ bankpulse-sagemaker-mlops/
 - **Notebooks** only call the framework (`pipeline.run()`); they hold no reusable logic.
 
 To make both packages importable in notebooks and tests, run `pip install -e .` from the repository root.
+
+## Features
+
+All 12 features are enabled at v1 in `config/data_prep.yaml`. None of them reads `duration`, and every learned value (caps, category lists) is fitted on the training split only and saved as JSON.
+
+| Feature | Version | Inputs | Output | Learns from training |
+|---|---|---|---|---|
+| `previously_contacted` | v1 | `pdays` | 1 if `pdays` is not the 999 "never contacted" value | – |
+| `prior_success` | v1 | `poutcome` | 1 if the previous campaign succeeded | – |
+| `previous_contacts` | v1 | `previous` | Raw count | – |
+| `campaign_intensity` | v1 | `campaign` | Raw count | – |
+| `capped_campaign` | v1 | `campaign` | Count clipped at the 99th percentile | Cap |
+| `euribor_rate` | v1 | `euribor3m` | Raw value (time-dependent, watch for drift) | – |
+| `employment_level` | v1 | `nr.employed` | Raw value (time-dependent, watch for drift) | – |
+| `economic_indicators` | v1 | `emp.var.rate`, `cons.price.idx`, `cons.conf.idx` | One column each (time-dependent, watch for drift) | – |
+| `age` | v1 | `age` | Raw age | – |
+| `age_band` | v1 | `age` | One-hot `<30`, `30-44`, `45-59`, `60+` | – |
+| `categorical_profile` | v1 | `job`, `marital`, `education`, `default`, `housing`, `loan` | One-hot | Category lists |
+| `contact_timing` | v1 | `contact`, `month`, `day_of_week` | One-hot | Category lists |
+
+- **Column names:** single-column features use the feature name. Multi-column outputs use `<feature>__<category>`, or `<feature>__<column>__<category>` when several raw columns are encoded.
+- **Unseen values:** a category not seen in training goes to that column's `__other` column, while the dataset's own `unknown` stays a normal category. For example, `month = sep` appears only after the training period.
+- **Output:** fitted on the training split, the 12 features give 73 columns.
+
+## Running the tests
+
+```bash
+pip install -r requirements.txt
+pip install -e .
+pytest -v
+```
+
+Tests run locally before each merge; there is no hosted CI.
 
 ## Planned S3 layout
 
