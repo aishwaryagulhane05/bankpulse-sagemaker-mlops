@@ -94,6 +94,43 @@ def write_outputs(matrices: Mapping[str, pd.DataFrame], labels: Mapping[str, pd.
     return written
 
 
+def check_outputs(matrices: Mapping[str, pd.DataFrame], labels: Mapping[str, pd.Series], schema: Mapping,
+                  forbidden: Sequence[str]) -> None:
+    """Raise PipelineError listing every reason the outputs are unsafe to write.
+
+    XGBoost reads columns by position and accepts any number, so a wrong column order, a
+    text value turned into NaN or a leaked column would train silently on bad data.
+    """
+    problems = []
+    for split, matrix in matrices.items():
+        # Step 1: every split has exactly the schema's columns, in the schema's order.
+        if list(matrix.columns) != list(schema['columns']):
+            problems.append(f'{split}: columns differ from the schema order')
+        # Step 2: no output column is a forbidden (leakage) column or derived from one by name.
+        leaked = [c for c in matrix.columns if any(c == f or c.startswith(f'{f}__') for f in forbidden)]
+        if leaked:
+            problems.append(f'{split}: forbidden columns in output {leaked}')
+        # Step 3: every column is numeric (bool and text would be written as words).
+        not_numeric = [c for c in matrix.columns if not pd.api.types.is_numeric_dtype(matrix[c])
+                       or pd.api.types.is_bool_dtype(matrix[c])]
+        if not_numeric:
+            problems.append(f'{split}: non-numeric columns {not_numeric[:5]}')
+        else:
+            # Step 4: no missing or infinite values (only checkable once columns are numeric).
+            bad = matrix.columns[~matrix.apply(lambda column: column.notna() & column.abs().ne(float('inf'))).all()]
+            if len(bad):
+                problems.append(f'{split}: missing or infinite values in {list(bad)[:5]}')
+        # Step 5: labels are 0/1 and line up with the feature rows.
+        label = labels[split]
+        if not label.index.equals(matrix.index):
+            problems.append(f'{split}: labels and features have different rows')
+        values = sorted(label.unique().tolist())          # .tolist() gives plain ints for the message
+        if not set(values) <= {0, 1}:
+            problems.append(f'{split}: labels must be 0/1, got {values}')
+    if problems:
+        raise PipelineError('Outputs failed checks, nothing was written:\n- ' + '\n- '.join(problems))
+
+
 def run(config: Mapping) -> Dict:
     """Run data preparation end to end and return the written paths and the split summary.
 
@@ -140,6 +177,8 @@ def run(config: Mapping) -> Dict:
         labels = {name: encode_target(part[contract.target], contract.positive_label)
                   for name, part in splits.items()}
         schema = build_schema(features, list(matrices['train'].columns), contract.target, contract.positive_label)
+        # Last gate: nothing is written unless every split passes.
+        check_outputs(matrices, labels, schema, contract.forbidden_columns)
 
     # Step 6: write the files and record every output's hash.
     with log_stage('write outputs'):
