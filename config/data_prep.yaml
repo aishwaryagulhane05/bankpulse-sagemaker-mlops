@@ -1,1 +1,22 @@
 # Data preparation config: data source, split fractions, and which features (and versions) are enabled
+
+# Enabled features, as name: version, in output column order. Each pair must be registered
+# by a module in features/. To upgrade a feature, change its version here (e.g. v1 -> v2);
+# the pipeline code doesn't change.
+features:
+  # Contact history (features/contact_history.py)
+  previously_contacted: v1
+  prior_success: v1
+  previous_contacts: v1
+  # Campaign (features/campaign.py)
+  campaign_intensity: v1
+  capped_campaign: v1
+  # Economic indicators (features/economic.py) - time-dependent, watch for drift
+  euribor_rate: v1
+  employment_level: v1
+  economic_indicators: v1
+  # Client profile and contact timing (features/client_profile.py)
+  age: v1
+  age_band: v1
+  categorical_profile: v1
+  contact_timing: v1
