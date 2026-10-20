@@ -1,0 +1,30 @@
+{
+  "binary_classification_metrics": {
+    "auc": {
+      "value": 0.6291,
+      "standard_deviation": "NaN"
+    },
+    "precision": {
+      "value": 0.4733,
+      "standard_deviation": "NaN"
+    },
+    "recall": {
+      "value": 0.3022,
+      "standard_deviation": "NaN"
+    },
+    "f1": {
+      "value": 0.3689,
+      "standard_deviation": "NaN"
+    },
+    "confusion_matrix": {
+      "0": {
+        "0": 3004,
+        "1": 799
+      },
+      "1": {
+        "0": 1658,
+        "1": 718
+      }
+    }
+  }
+}
