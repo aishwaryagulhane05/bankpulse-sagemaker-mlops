@@ -246,6 +246,7 @@ s3://sagemaker-us-east-1-<account>/bank-campaign-mlops/
 - **One bank, 2008–2010.** The data is from a single Portuguese bank during a financial crisis.
 - **Lab limits.** Clarify and Model Monitor schedules are unavailable to new accounts, so bias and drift checks use the project's own code.
 - **The v2 feature upgrade** (`capped_campaign v2`) is implemented. Its SageMaker retrain is still to do (issue #58).
+- **Retraining is planned, not automated yet.** [docs/retraining.md](docs/retraining.md) designs the loop (new file / schedule / drift alarm → SageMaker Pipeline → champion vs challenger → approval → blue/green deploy with rollback). Phase 11 issues #93–#100 implement it.
 
 ## Responsible use
 
