@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "feature_package": "features",
+  "target": "y",
+  "positive_label": "yes",
+  "columns": [
+    "previously_contacted",
+    "prior_success",
+    "previous_contacts",
+    "campaign_intensity",
+    "capped_campaign",
+    "age",
+    "age_band__lt30",
+    "age_band__30_44",
+    "age_band__45_59",
+    "age_band__60plus",
+    "categorical_profile__job__admin.",
+    "categorical_profile__job__blue-collar",
+    "categorical_profile__job__entrepreneur",
+    "categorical_profile__job__housemaid",
+    "categorical_profile__job__management",
+    "categorical_profile__job__retired",
+    "categorical_profile__job__self-employed",
+    "categorical_profile__job__services",
+    "categorical_profile__job__student",
+    "categorical_profile__job__technician",
+    "categorical_profile__job__unemployed",
+    "categorical_profile__job__unknown",
+    "categorical_profile__job__other",
+    "categorical_profile__marital__divorced",
+    "categorical_profile__marital__married",
+    "categorical_profile__marital__single",
+    "categorical_profile__marital__unknown",
+    "categorical_profile__marital__other",
+    "categorical_profile__education__basic.4y",
+    "categorical_profile__education__basic.6y",
+    "categorical_profile__education__basic.9y",
+    "categorical_profile__education__high.school",
+    "categorical_profile__education__illiterate",
+    "categorical_profile__education__professional.course",
+    "categorical_profile__education__university.degree",
+    "categorical_profile__education__unknown",
+    "categorical_profile__education__other",
+    "categorical_profile__default__no",
+    "categorical_profile__default__unknown",
+    "categorical_profile__default__yes",
+    "categorical_profile__default__other",
+    "categorical_profile__housing__no",
+    "categorical_profile__housing__unknown",
+    "categorical_profile__housing__yes",
+    "categorical_profile__housing__other",
+    "categorical_profile__loan__no",
+    "categorical_profile__loan__unknown",
+    "categorical_profile__loan__yes",
+    "categorical_profile__loan__other",
+    "contact_timing__contact__cellular",
+    "contact_timing__contact__telephone",
+    "contact_timing__contact__other",
+    "contact_timing__month__apr",
+    "contact_timing__month__aug",
+    "contact_timing__month__dec",
+    "contact_timing__month__jul",
+    "contact_timing__month__jun",
+    "contact_timing__month__mar",
+    "contact_timing__month__may",
+    "contact_timing__month__nov",
+    "contact_timing__month__oct",
+    "contact_timing__month__other",
+    "contact_timing__day_of_week__fri",
+    "contact_timing__day_of_week__mon",
+    "contact_timing__day_of_week__thu",
+    "contact_timing__day_of_week__tue",
+    "contact_timing__day_of_week__wed",
+    "contact_timing__day_of_week__other"
+  ],
+  "features": [
+    {
+      "name": "previously_contacted",
+      "version": "v1",
+      "inputs": [
+        "pdays"
+      ],
+      "state": {}
+    },
+    {
+      "name": "prior_success",
+      "version": "v1",
+      "inputs": [
+        "poutcome"
+      ],
+      "state": {}
+    },
+    {
+      "name": "previous_contacts",
+      "version": "v1",
+      "inputs": [
+        "previous"
+      ],
+      "state": {}
+    },
+    {
+      "name": "campaign_intensity",
+      "version": "v1",
+      "inputs": [
+        "campaign"
+      ],
+      "state": {}
+    },
+    {
+      "name": "capped_campaign",
+      "version": "v1",
+      "inputs": [
+        "campaign"
+      ],
+      "state": {
+        "quantile": 0.99,
+        "cap": 17.0
+      }
+    },
+    {
+      "name": "age",
+      "version": "v1",
+      "inputs": [
+        "age"
+      ],
+      "state": {}
+    },
+    {
+      "name": "age_band",
+      "version": "v1",
+      "inputs": [
+        "age"
+      ],
+      "state": {}
+    },
+    {
+      "name": "categorical_profile",
+      "version": "v1",
+      "inputs": [
+        "job",
+        "marital",
+        "education",
+        "default",
+        "housing",
+        "loan"
+      ],
+      "state": {
+        "job": {
+          "name": "categorical_profile__job",
+          "categories": [
+            "admin.",
+            "blue-collar",
+            "entrepreneur",
+            "housemaid",
+            "management",
+            "retired",
+            "self-employed",
+            "services",
+            "student",
+            "technician",
+            "unemployed",
+            "unknown"
+          ]
+        },
+        "marital": {
+          "name": "categorical_profile__marital",
+          "categories": [
+            "divorced",
+            "married",
+            "single",
+            "unknown"
+          ]
+        },
+        "education": {
+          "name": "categorical_profile__education",
+          "categories": [
+            "basic.4y",
+            "basic.6y",
+            "basic.9y",
+            "high.school",
+            "illiterate",
+            "professional.course",
+            "university.degree",
+            "unknown"
+          ]
+        },
+        "default": {
+          "name": "categorical_profile__default",
+          "categories": [
+            "no",
+            "unknown",
+            "yes"
+          ]
+        },
+        "housing": {
+          "name": "categorical_profile__housing",
+          "categories": [
+            "no",
+            "unknown",
+            "yes"
+          ]
+        },
+        "loan": {
+          "name": "categorical_profile__loan",
+          "categories": [
+            "no",
+            "unknown",
+            "yes"
+          ]
+        }
+      }
+    },
+    {
+      "name": "contact_timing",
+      "version": "v1",
+      "inputs": [
+        "contact",
+        "month",
+        "day_of_week"
+      ],
+      "state": {
+        "contact": {
+          "name": "contact_timing__contact",
+          "categories": [
+            "cellular",
+            "telephone"
+          ]
+        },
+        "month": {
+          "name": "contact_timing__month",
+          "categories": [
+            "apr",
+            "aug",
+            "dec",
+            "jul",
+            "jun",
+            "mar",
+            "may",
+            "nov",
+            "oct"
+          ]
+        },
+        "day_of_week": {
+          "name": "contact_timing__day_of_week",
+          "categories": [
+            "fri",
+            "mon",
+            "thu",
+            "tue",
+            "wed"
+          ]
+        }
+      }
+    }
+  ]
+}
