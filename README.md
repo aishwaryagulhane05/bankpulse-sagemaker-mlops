@@ -2,7 +2,7 @@
 
 An end-to-end MLOps system that predicts whether a bank customer will subscribe to a term deposit, **before** the call is made. It uses a tested Python framework for the data, and AWS SageMaker for training, batch scoring, the model registry, the Model Card, a real-time endpoint with Data Capture, and monitoring with Amazon CloudWatch.
 
-> **Status:** complete. Every stage has run end to end in an AWS Academy Learner Lab (`us-east-1`), and the framework and UI have 245 passing tests.
+> **Status:** complete. Every stage has run end to end in an AWS Academy Learner Lab (`us-east-1`), and the framework, pipeline and UI have 266 passing tests.
 
 ![Architecture: local framework, SageMaker components in the AWS lab, and monitoring](architecture/architecture.png)
 
@@ -70,6 +70,7 @@ The core never imports `features/`. `config/data_prep.yaml` chooses which featur
 | `03_model_registry` | **Model Registry** (package group, version with model metrics, approval), **Model Card** | Version 1 **Approved**; card `bankpulse-term-deposit-v1` |
 | `04_inference_capture` | **Model**, **Endpoint configuration**, **Real-time endpoint**, **Data Capture**, `InvokeEndpoint` | 200 new customers scored; capture files in S3 |
 | `05_bias_drift_monitoring` | **CloudWatch** metrics, alarm and dashboard; **Model Monitor** baseline; **Clarify** (attempted) | Monitoring report; 4 metrics, alarm and dashboard; clean-up cell |
+| `06_continuous_training` | **SageMaker Pipelines**, **EventBridge** triggers, Model Registry version history | 4 successful retraining runs; versions 2-5 registered as PendingManualApproval |
 
 ## Features
 
@@ -128,6 +129,45 @@ The age-band selection rates at the threshold are: 60+ 77%, under 30 54%, 30–4
 **Managed SageMaker monitoring** (results in `reports/managed_monitoring_attempts.json`):
 - Model Monitor baseline job: **completed**.
 - Monitoring schedule and Clarify bias job: **rejected by AWS**, with "in maintenance mode and not available to new customers". The custom report above covers the same checks.
+
+## Continuous training
+
+New data keeps arriving after deployment, so the model retrains on recent data while the endpoint keeps serving the approved version. The design is in [docs/retraining.md](docs/retraining.md).
+
+```
+new month in raw/incoming/ ─┐
+monthly schedule ───────────┼─> EventBridge ─> SageMaker Pipeline "bankpulse-retrain":
+drift alarm (PSI > 0.2) ────┘     Prepare (ingest + rolling window) -> Train -> Evaluate (challenger vs champion)
+                                  -> Check -> Register (PendingManualApproval) -> a person approves -> deploy
+```
+
+- **Ingest** (`bankpulse_core/ingest.py`):
+  - each new file is checked against the data contract;
+  - accepted files are copied byte for byte to `raw/batches/` and listed in `manifest.json`;
+  - duplicates are skipped, and invalid files are reported in `raw/rejected/`;
+  - nothing is deleted.
+- **Rolling window** (`split.window_split`): train on the latest 12 months, validate on the next 2, hold out the newest 2. Older months age out.
+- **Champion vs challenger** (`pipelines/steps/evaluate.py`): both models score the same holdout, each with its own feature schema and its own threshold from validation.
+- **Rule:** register only if holdout PR-AUC is no more than 0.01 below the champion's, and the age-band selection ratio is not worse than the champion's or is at least 0.8.
+- **Triggers** (`pipelines/triggers.py`): `bankpulse-retrain-on-upload`, `-monthly` and `-on-drift`, running as `LabRole`.
+- **Safe deployment** (`pipelines/deploy.py`, not wired yet):
+  - blue/green canary (10% for 10 minutes), with auto-rollback on 5XX and p99-latency alarms;
+  - keeps Data Capture, and records the version's feature schema on the endpoint;
+  - one-call manual rollback.
+
+**Replay in the lab.** The history was split into its 26 calendar months. Months 1-23 were loaded as history, and months 24, 25 and 26 then arrived one at a time; each upload to `raw/incoming/` started the pipeline by itself.
+
+| Execution | Trigger | Holdout (newest 2 months) | Champion (v1) PR-AUC | Challenger PR-AUC | Challenger lift | Age-band ratio | Result |
+|---|---|---|---|---|---|---|---|
+| `3wjs5sh014r7` | manual, month 24 | 536 rows | 0.588 | **0.751** | 1.76× | 0.83 | version 2 |
+| `pyc11ujznp6j` | **S3 upload**, month 25 | 507 rows | 0.489 | **0.732** | 1.71× | 0.87 | version 3 |
+| `akymeu81c6aa` | manual, `capped_campaign v2` | 507 rows | 0.489 | **0.732** | 1.71× | 0.87 | version 4 |
+| `9ccdjy4g6i50` | **S3 upload**, month 26 | 332 rows | 0.474 | **0.660** | 1.53× | – | version 5 |
+
+**What the replay showed:**
+- **Retraining wins every time.** On every arrival, the model retrained on the latest 12 months beats the 2008-trained champion by 0.16-0.24 PR-AUC.
+- **The v2 feature changes nothing.** `capped_campaign v2` (log1p) gives exactly the same results as v1, because tree splits don't change under a monotonic transform, so v1 stays.
+- **Nothing is live yet.** Versions 2-5 wait for approval; the endpoint still serves version 1.
 
 ## Running it
 
@@ -211,11 +251,13 @@ bankpulse-sagemaker-mlops/
 ├── features/            FEATURES: contact_history, campaign, economic, client_profile
 ├── config/              data_prep.yaml (data, split, S3 prefix, enabled features), contract.yaml
 ├── data/raw/            dataset and column descriptions (data/processed/ is generated, git-ignored)
-├── notebooks/           01-05 without outputs; executed/ holds the same notebooks with the lab run's outputs
+├── notebooks/           01-06 without outputs; executed/ holds the same notebooks with the lab run's outputs
+├── pipelines/           retrain_pipeline (SageMaker Pipeline), steps/ (prepare, evaluate), triggers, deploy
+├── docs/                retraining.md: continuous-training design
 ├── reports/             quality, baseline, tuning, XGBoost, comparison, monitoring, managed-monitoring results
-├── scripts/             check_aws, quality_report, baseline, tune_xgboost
+├── scripts/             check_aws, quality_report, baseline, tune_xgboost, simulate_arrivals
 ├── ui/                  Streamlit results UI: app, tracking (read-only AWS status), scoring, content
-├── tests/               core/, features/, integration/, ui/ (245 tests)
+├── tests/               core/, features/, integration/, ui/, pipelines/ (266 tests)
 ├── pyproject.toml       pip install -e .
 └── requirements.txt
 ```
@@ -245,8 +287,7 @@ s3://sagemaker-us-east-1-<account>/bank-campaign-mlops/
 - **Small live sample.** Monitoring used 200 captured customers. Its rates per age band are indicative only.
 - **One bank, 2008–2010.** The data is from a single Portuguese bank during a financial crisis.
 - **Lab limits.** Clarify and Model Monitor schedules are unavailable to new accounts, so bias and drift checks use the project's own code.
-- **The v2 feature upgrade** (`capped_campaign v2`) is implemented. Its SageMaker retrain is still to do (issue #58).
-- **Retraining is planned, not automated yet.** [docs/retraining.md](docs/retraining.md) designs the loop (new file / schedule / drift alarm → SageMaker Pipeline → champion vs challenger → approval → blue/green deploy with rollback). Phase 11 issues #93–#100 implement it.
+- **Deployment of a retrained version is a manual step.** Retraining, evaluation and registration run automatically. Switching the endpoint to an approved version (`pipelines/deploy.py`) is implemented and tested with fake clients, but not wired to approvals or run in the lab yet, so the endpoint keeps serving version 1.
 
 ## Responsible use
 

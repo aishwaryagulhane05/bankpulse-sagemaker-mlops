@@ -98,3 +98,23 @@ def test_safe_turns_errors_into_a_message():
 
     assert tracking.safe(expired) == {'error': 'PermissionError: ExpiredToken'}
     assert tracking.safe(lambda: 42) == 42
+
+
+def test_pipeline_executions_and_triggers():
+    class FakePipelineClient:
+        def list_pipeline_executions(self, **kwargs):
+            return {'PipelineExecutionSummaries': [{'PipelineExecutionArn': 'arn:pipeline/execution/abc',
+                                                    'PipelineExecutionStatus': 'Succeeded', 'StartTime': T0}]}
+
+        def list_pipeline_execution_steps(self, PipelineExecutionArn):
+            return {'PipelineExecutionSteps': [{'StepName': 'Register-RegisterModel', 'StepStatus': 'Succeeded'},
+                                               {'StepName': 'Prepare', 'StepStatus': 'Succeeded'}]}
+
+    class FakeEvents:
+        def list_rules(self, NamePrefix):
+            return {'Rules': [{'Name': f'{NamePrefix}-monthly', 'State': 'ENABLED',
+                               'ScheduleExpression': 'cron(0 3 1 * ? *)'}]}
+
+    runs = tracking.pipeline_executions(FakePipelineClient(), 'bankpulse-retrain')
+    assert runs[0]['execution'] == 'abc' and runs[0]['steps'] == 'Prepare: Succeeded, Register: Succeeded'
+    assert tracking.trigger_rules(FakeEvents(), 'bankpulse-retrain')[0]['schedule'] == 'cron(0 3 1 * ? *)'

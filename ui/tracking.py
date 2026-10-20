@@ -117,3 +117,23 @@ def latest_metrics(cw, namespace: str, endpoint_name: str, names: List[str],
     response = cw.get_metric_data(MetricDataQueries=queries, StartTime=start, EndTime=end, ScanBy='TimestampDescending')
     return {item['Label']: (round(item['Values'][0], 4) if item['Values'] else None)
             for item in response['MetricDataResults']}
+
+
+def pipeline_executions(sm, name: str) -> List[Dict[str, Any]]:
+    """Every execution of the retraining pipeline, newest first, with each step's status."""
+    executions = sm.list_pipeline_executions(PipelineName=name, SortBy='CreationTime',
+                                             SortOrder='Descending')['PipelineExecutionSummaries']
+    rows = []
+    for execution in executions:
+        steps = sm.list_pipeline_execution_steps(PipelineExecutionArn=execution['PipelineExecutionArn'])
+        rows.append({'execution': execution['PipelineExecutionArn'].rsplit('/', 1)[1],
+                     'status': execution['PipelineExecutionStatus'], 'started': execution['StartTime'],
+                     'steps': ', '.join(f"{s['StepName'].split('-')[0]}: {s['StepStatus']}"
+                                        for s in reversed(steps['PipelineExecutionSteps']))})
+    return rows
+
+
+def trigger_rules(events, prefix: str) -> List[Dict[str, Any]]:
+    """EventBridge rules whose name starts with prefix (the retraining triggers)."""
+    return [{'rule': r['Name'], 'state': r['State'], 'schedule': r.get('ScheduleExpression', 'event')}
+            for r in events.list_rules(NamePrefix=prefix)['Rules']]

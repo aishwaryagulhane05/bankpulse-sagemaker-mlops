@@ -124,14 +124,35 @@ The result is a version history (v1, v2, v3, ...) with the data window, metrics 
 
 ## 9. Cost and lab limits (BP-1108)
 
-- **Compute:** each run uses `ml.m5.large` for about 15 minutes (processing, training, transform, evaluation), and is billed only while running. The canary briefly runs two endpoint fleets.
-- **Clean-up:**
-  - keep the last 3 model versions and their endpoint configs, and delete older configs;
-  - S3 lifecycle rule: move `inference-capture/` objects older than 90 days to cheaper storage.
-- **AWS Academy:**
-  - Lab credentials expire, but EventBridge rules, the pipeline and the endpoint keep running under `LabRole`. The endpoint keeps billing after the lab session ends.
-  - EventBridge needs a role it can assume to start the pipeline. BP-1105 first checks that `LabRole` allows this in the lab.
-  - Clarify and Model Monitor schedules are unavailable to new accounts, so the evaluate and monitoring steps use this project's own code.
+**What a run costs.** Each execution runs three `ml.m5.large` jobs back to back, each billed only while it runs:
+
+| Step | Time in the lab |
+|---|---|
+| Prepare | about 5 minutes (mostly instance start-up and `pip install`) |
+| Train | about 3 minutes |
+| Evaluate | about 4 minutes |
+
+There is no Batch Transform step, because Evaluate scores both models directly with XGBoost. Nothing keeps running after the execution ends. The canary in step 7 briefly runs two endpoint fleets.
+
+**Limits built in:**
+- every job has `max_run` of 1 hour;
+- the window caps the training data at 12 months;
+- a run with nothing new in `incoming/` still retrains on the same window, so the monthly schedule is the only trigger that fires without new data.
+
+**Clean-up (notebook 05, `CLEAN_UP = True`):**
+- **deletes:** the monitoring schedule, endpoint, endpoint config and model, which are the things that bill by the hour;
+- **disables, without deleting:** the three `bankpulse-retrain-*` rules, so no new executions start after the lab;
+- **keeps:** the pipeline definition, registry versions and S3 data. They cost nothing, or close to nothing, and they are the project's record.
+
+**When this runs for longer than a lab:**
+- keep the last 3 registry versions and their endpoint configs;
+- add an S3 lifecycle rule that moves `inference-capture/` and `retraining/executions/` objects older than 90 days to cheaper storage.
+
+**AWS Academy:**
+- Lab credentials expire, but EventBridge rules, the pipeline and the endpoint keep running under `LabRole`. The endpoint keeps billing after the lab session ends.
+- `LabRole` trusts `events.amazonaws.com`, so EventBridge can start the pipeline as `LabRole` (checked in BP-1105).
+- The processing container (XGBoost 1.7-1, Python 3.9, NumPy 1.24) needs `pandas==2.0.3`. Newer pandas wheels require NumPy 2 and fail to import.
+- Clarify and Model Monitor schedules are unavailable to new accounts, so the evaluate and monitoring steps use this project's own code.
 
 ## 10. Ticket map
 
