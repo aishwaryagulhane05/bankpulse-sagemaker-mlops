@@ -7,7 +7,8 @@ import pytest
 
 from bankpulse_core.feature_base import Feature
 from bankpulse_core.io import read_json
-from bankpulse_core.pipeline import PipelineError, build_matrix, build_schema, encode_target, write_outputs
+from bankpulse_core.pipeline import (PipelineError, build_matrix, build_schema, check_outputs, encode_target,
+                                     write_outputs)
 
 
 # Two small, unregistered features: core tests never import the features package.
@@ -97,3 +98,50 @@ def test_schema_file_is_written(tmp_path):
     assert read_json(written['feature_schema'])['columns'] == ['doubled', 'capped']
     assert set(written) == {'train', 'validation', 'validation_features', 'validation_labels',
                             'test_features', 'test_labels', 'feature_schema'}
+
+
+# ---- check_outputs ---------------------------------------------------------------------
+
+GOOD_MATRIX = pd.DataFrame({'a': [1, 2], 'b': [0.5, 1.5]}, index=[7, 8])
+GOOD_LABELS = pd.Series([0, 1], index=[7, 8])
+SCHEMA = {'columns': ['a', 'b']}
+
+
+def check(matrix=GOOD_MATRIX, labels=GOOD_LABELS, schema=SCHEMA):
+    check_outputs({'test': matrix}, {'test': labels}, schema, forbidden=['duration'])
+
+
+def test_good_outputs_pass():
+    check()
+
+
+@pytest.mark.parametrize('matrix, message', [
+    (GOOD_MATRIX[['b', 'a']], 'columns differ from the schema order'),
+    (GOOD_MATRIX.assign(b=['x', 'y']), r"non-numeric columns \['b'\]"),
+    (GOOD_MATRIX.assign(b=[True, False]), r"non-numeric columns \['b'\]"),
+    (GOOD_MATRIX.assign(b=[float('nan'), 1.0]), r"missing or infinite values in \['b'\]"),
+    (GOOD_MATRIX.assign(b=[float('inf'), 1.0]), r"missing or infinite values in \['b'\]"),
+])
+def test_bad_matrix_is_rejected(matrix, message):
+    with pytest.raises(PipelineError, match=message):
+        check(matrix=matrix)
+
+
+@pytest.mark.parametrize('column', ['duration', 'duration__capped'])
+def test_forbidden_output_column_is_rejected(column):
+    matrix = GOOD_MATRIX.rename(columns={'b': column})
+    with pytest.raises(PipelineError, match='forbidden columns in output'):
+        check(matrix=matrix, schema={'columns': ['a', column]})
+
+
+def test_labels_must_be_binary_and_aligned():
+    with pytest.raises(PipelineError, match=r'labels must be 0/1, got \[0, 2\]'):
+        check(labels=pd.Series([0, 2], index=[7, 8]))
+    with pytest.raises(PipelineError, match='different rows'):
+        check(labels=pd.Series([0, 1], index=[0, 1]))
+
+
+def test_all_problems_are_listed_at_once():
+    with pytest.raises(PipelineError) as error:
+        check(matrix=GOOD_MATRIX[['b', 'a']].assign(a=['x', 'y']), labels=pd.Series([5, 1], index=[7, 8]))
+    assert str(error.value).count('\n- ') == 3

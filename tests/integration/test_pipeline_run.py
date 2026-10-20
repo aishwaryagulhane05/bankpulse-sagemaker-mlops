@@ -1,6 +1,8 @@
 """End-to-end tests: pipeline.run() on the real dataset with the project's config."""
 
 import copy
+import sys
+import types
 from pathlib import Path
 
 import pandas as pd
@@ -60,3 +62,29 @@ def test_run_metadata_traces_inputs_and_outputs(first_run):
     assert set(metadata['outputs']) == set(first_run['outputs'])
     assert metadata['features']['capped_campaign'] == 'v1'
     assert metadata['split_summary']['train'] == first_run['split_summary']['train']
+
+
+def test_broken_feature_fails_the_run_and_writes_nothing(tmp_path, monkeypatch):
+    # A deliberately broken input: a feature package whose feature outputs text.
+    from bankpulse_core import feature_base
+    from bankpulse_core.feature_base import Feature, register
+    from bankpulse_core.pipeline import PipelineError
+
+    monkeypatch.setattr(feature_base, '_REGISTRY', dict(feature_base._REGISTRY))
+    package = types.ModuleType('broken_features')
+
+    @register
+    class JobAsText(Feature):
+        name, version, inputs, owner, description = 'job_as_text', 'v1', ('job',), 'tests', 'Raw job text'
+
+        def _transform(self, df):
+            return df['job']
+
+    monkeypatch.setitem(sys.modules, 'broken_features', package)
+    config = config_writing_to(tmp_path)
+    config['feature_package'] = 'broken_features'
+    config['features'] = {'age': 'v1', 'job_as_text': 'v1'}
+
+    with pytest.raises(PipelineError, match=r"non-numeric columns \['job_as_text'\]"):
+        run(config)
+    assert not any(tmp_path.iterdir())
