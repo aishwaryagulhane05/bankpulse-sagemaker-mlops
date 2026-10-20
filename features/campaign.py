@@ -2,17 +2,18 @@
 
     campaign_intensity v1   number of contacts in this campaign (raw count)
     capped_campaign v1      the same count, clipped at the training data's 99th percentile
+    capped_campaign v2      log(1 + capped count): the v1 cap, then a log to shrink the tail
 
-The raw count has a long tail (most customers get 1-3 calls, a few get 40+). v1 keeps
-the raw count and a capped copy; a log1p version is planned as a v2 upgrade, so the two
-versions can be compared without changing v1.
+The raw count has a long tail (most customers get 1-3 calls, a few get 40+). v2 is an
+upgrade of v1 that lives next to it: config/data_prep.yaml picks the version, so a model
+trained on v1 keeps getting v1 values while v2 is evaluated.
 """
 
 from typing import Dict
 
 import pandas as pd
 
-from bankpulse_core.encoding import Capper
+from bankpulse_core.encoding import Capper, log1p
 from bankpulse_core.feature_base import Feature, register
 
 OWNER = 'bankpulse-ds'
@@ -62,3 +63,20 @@ class CappedCampaign(Feature):
 
     def _load_state(self, state: Dict) -> None:
         self._capper = Capper.from_dict(state)
+
+
+@register
+class CappedCampaignV2(CappedCampaign):
+    """v2: the same learned cap as v1, followed by log1p.
+
+    The log spreads out the common 1-3 contacts and squeezes the rare high counts, which
+    suits linear models; tree models such as XGBoost mostly ignore monotonic transforms,
+    so v2 is expected to matter more for the logistic regression baseline.
+    """
+
+    version = 'v2'
+    description = f'log(1 + contacts in this campaign), after clipping at the training {CAP_QUANTILE:.0%} quantile'
+
+    def _transform(self, df: pd.DataFrame) -> pd.Series:
+        # Step 2 (v2): clip with the learned cap exactly as v1 does, then take log1p.
+        return log1p(super()._transform(df))
