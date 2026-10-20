@@ -280,10 +280,29 @@ From the run in the AWS Academy lab. Click a thumbnail for the full image. All c
 <tr><td width="50%"><a href="docs/screenshots/06-registry-version-5-lineage.png"><img src="docs/screenshots/06-registry-version-5-lineage.png" width="100%" alt="06-registry-version-5-lineage.png"></a><br><sub>Version 5 lineage</sub></td><td width="50%"><a href="docs/screenshots/06-endpoint-unchanged-after-retraining.png"><img src="docs/screenshots/06-endpoint-unchanged-after-retraining.png" width="100%" alt="06-endpoint-unchanged-after-retraining.png"></a><br><sub>Endpoint unchanged after retraining</sub></td></tr>
 </table>
 
-**Results UI**
+**Results UI: overview and SageMaker tracking**
 
 <table>
-<tr><td width="50%"><a href="docs/screenshots/ui-overview.png"><img src="docs/screenshots/ui-overview.png" width="100%" alt="ui-overview.png"></a><br><sub>Results UI overview</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/ui-overview.png"><img src="docs/screenshots/ui-overview.png" width="100%" alt="ui-overview.png"></a><br><sub>Results UI overview</sub></td><td width="50%"><a href="docs/screenshots/ui-tracking-data-lake.png"><img src="docs/screenshots/ui-tracking-data-lake.png" width="100%" alt="ui-tracking-data-lake.png"></a><br><sub>Tracking: data lake</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/ui-tracking-training-job.png"><img src="docs/screenshots/ui-tracking-training-job.png" width="100%" alt="ui-tracking-training-job.png"></a><br><sub>Tracking: training job and hyperparameters</sub></td><td width="50%"><a href="docs/screenshots/ui-tracking-batch-transform-registry.png"><img src="docs/screenshots/ui-tracking-batch-transform-registry.png" width="100%" alt="ui-tracking-batch-transform-registry.png"></a><br><sub>Tracking: Batch Transform and registry</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/ui-tracking-endpoint.png"><img src="docs/screenshots/ui-tracking-endpoint.png" width="100%" alt="ui-tracking-endpoint.png"></a><br><sub>Tracking: endpoint and Data Capture</sub></td></tr>
+</table>
+
+**Results UI: model results and monitoring**
+
+<table>
+<tr><td width="50%"><a href="docs/screenshots/ui-results-confusion-matrices.png"><img src="docs/screenshots/ui-results-confusion-matrices.png" width="100%" alt="ui-results-confusion-matrices.png"></a><br><sub>Results: confusion matrices</sub></td><td width="50%"><a href="docs/screenshots/ui-results-hyperparameter-search.png"><img src="docs/screenshots/ui-results-hyperparameter-search.png" width="100%" alt="ui-results-hyperparameter-search.png"></a><br><sub>Results: hyperparameter search</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/ui-monitoring-alerts.png"><img src="docs/screenshots/ui-monitoring-alerts.png" width="100%" alt="ui-monitoring-alerts.png"></a><br><sub>Monitoring: alerts</sub></td><td width="50%"><a href="docs/screenshots/ui-monitoring-drift-and-age-bands.png"><img src="docs/screenshots/ui-monitoring-drift-and-age-bands.png" width="100%" alt="ui-monitoring-drift-and-age-bands.png"></a><br><sub>Monitoring: drift and age bands</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/ui-monitoring-cloudwatch.png"><img src="docs/screenshots/ui-monitoring-cloudwatch.png" width="100%" alt="ui-monitoring-cloudwatch.png"></a><br><sub>Monitoring: CloudWatch (live)</sub></td></tr>
+</table>
+
+**Results UI: scoring with the live endpoint**
+
+<table>
+<tr><td width="50%"><a href="docs/screenshots/ui-score-form.png"><img src="docs/screenshots/ui-score-form.png" width="100%" alt="ui-score-form.png"></a><br><sub>Score: customer form</sub></td><td width="50%"><a href="docs/screenshots/ui-score-lower-priority.png"><img src="docs/screenshots/ui-score-lower-priority.png" width="100%" alt="ui-score-lower-priority.png"></a><br><sub>Score: 4.2%, lower priority</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/ui-score-call-first-age-65.png"><img src="docs/screenshots/ui-score-call-first-age-65.png" width="100%" alt="ui-score-call-first-age-65.png"></a><br><sub>Score: 47.8%, call first</sub></td><td width="50%"><a href="docs/screenshots/ui-score-call-first-october.png"><img src="docs/screenshots/ui-score-call-first-october.png" width="100%" alt="ui-score-call-first-october.png"></a><br><sub>Score: October, 41.2%</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/ui-score-june.png"><img src="docs/screenshots/ui-score-june.png" width="100%" alt="ui-score-june.png"></a><br><sub>Score: same customer in June, 14.3%</sub></td><td width="50%"><a href="docs/screenshots/ui-score-newest-customers.png"><img src="docs/screenshots/ui-score-newest-customers.png" width="100%" alt="ui-score-newest-customers.png"></a><br><sub>Score: newest 200 customers</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/ui-score-distribution.png"><img src="docs/screenshots/ui-score-distribution.png" width="100%" alt="ui-score-distribution.png"></a><br><sub>Score: distribution</sub></td></tr>
 </table>
 
 ## Repository structure
