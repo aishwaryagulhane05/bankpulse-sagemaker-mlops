@@ -14,6 +14,7 @@ VALID = {
     'contract': 'config/contract.yaml',
     'split': {'train': 0.7, 'validation': 0.15, 'test': 0.15},
     'output': {'processed_dir': 'data/processed', 'reports_dir': 'reports'},
+    'feature_package': 'features',
     'features': {'age': 'v1'},
 }
 
