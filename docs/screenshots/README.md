@@ -138,17 +138,85 @@ Screenshots from the run in the AWS Academy Learner Lab (`us-east-1`), in notebo
 
 ![06-endpoint-unchanged-after-retraining.png](06-endpoint-unchanged-after-retraining.png)
 
-## Results UI
+## Results UI: overview and SageMaker tracking
 
 **ui-overview.png**: Streamlit results UI (`streamlit run ui/app.py`), Overview: the problem, why it matters, key numbers, and the live connection to the lab.
 
 ![ui-overview.png](ui-overview.png)
 
+**ui-tracking-data-lake.png**: SageMaker tracking, read live from the lab: objects, size and last change per data-lake folder.
+
+![ui-tracking-data-lake.png](ui-tracking-data-lake.png)
+
+**ui-tracking-training-job.png**: Training job Completed on ml.m5.large (156 billable seconds, validation PR-AUC 0.2259), with the hyperparameters used.
+
+![ui-tracking-training-job.png](ui-tracking-training-job.png)
+
+**ui-tracking-batch-transform-registry.png**: Batch Transform jobs for validation and test, and the Model Registry versions with their approval status and descriptions.
+
+![ui-tracking-batch-transform-registry.png](ui-tracking-batch-transform-registry.png)
+
+**ui-tracking-endpoint.png**: Registry versions, the Model Card, and the endpoint InService with Data Capture at 100%.
+
+![ui-tracking-endpoint.png](ui-tracking-endpoint.png)
+
+## Results UI: model results and monitoring
+
+**ui-results-confusion-matrices.png**: Confusion matrices on test, each at its validation threshold: XGBoost finds 718 subscribers vs 533 for the logistic baseline.
+
+![ui-results-confusion-matrices.png](ui-results-confusion-matrices.png)
+
+**ui-results-hyperparameter-search.png**: How the hyperparameters were chosen: the validation-only grid search (best: depth 4, eta 0.05, validation PR-AUC 0.229).
+
+![ui-results-hyperparameter-search.png](ui-results-hyperparameter-search.png)
+
+**ui-monitoring-alerts.png**: Monitoring headline metrics and alerts: 17 drifted inputs (max PSI 3.43), prediction drift 2.95, age-band selection ratio 0.30.
+
+![ui-monitoring-alerts.png](ui-monitoring-alerts.png)
+
+**ui-monitoring-drift-and-age-bands.png**: PSI per feature (top 15) and the share the model would call per age band (60+ about 77%, 45-59 about 23%).
+
+![ui-monitoring-drift-and-age-bands.png](ui-monitoring-drift-and-age-bands.png)
+
+**ui-monitoring-cloudwatch.png**: Live CloudWatch: the drift alarm state and the latest value of each custom metric.
+
+![ui-monitoring-cloudwatch.png](ui-monitoring-cloudwatch.png)
+
+## Results UI: scoring with the live endpoint
+
+**ui-score-form.png**: One-customer form: only information known before the call, encoded with the deployed feature schema.
+
+![ui-score-form.png](ui-score-form.png)
+
+**ui-score-lower-priority.png**: A 35-year-old admin, never contacted, called in May: 4.2%, **Lower priority** (below the 0.106 threshold).
+
+![ui-score-lower-priority.png](ui-score-lower-priority.png)
+
+**ui-score-call-first-age-65.png**: The same customer at age 65, called in October: 47.8%, **Call first**.
+
+![ui-score-call-first-age-65.png](ui-score-call-first-age-65.png)
+
+**ui-score-call-first-october.png**: A 65-year-old blue-collar customer, called in October: 41.2%, Call first. (These inputs break a data-contract rule: a "failure" outcome with 0 earlier contacts. The form does not check the rules yet.)
+
+![ui-score-call-first-october.png](ui-score-call-first-october.png)
+
+**ui-score-june.png**: The same customer called in June: 14.3%. Only the month changed, which shows how strongly the month affects the score.
+
+![ui-score-june.png](ui-score-june.png)
+
+**ui-score-newest-customers.png**: The newest 200 customers scored by the endpoint: 82 flagged, 60% of them subscribed vs 50% overall.
+
+![ui-score-newest-customers.png](ui-score-newest-customers.png)
+
+**ui-score-distribution.png**: Score distribution of those 200 customers, coloured by whether they actually subscribed.
+
+![ui-score-distribution.png](ui-score-distribution.png)
+
 ## Still to capture
 
 - Notebook 01: object details of `train/train.csv`
-- Notebook 02: training job hyperparameters (Configurations tab); evaluation table, PR curve and confusion matrix (also in `notebooks/executed/02_training_evaluation.ipynb`)
+- Notebook 02: the evaluation table and PR curve from the notebook (also in `notebooks/executed/02_training_evaluation.ipynb`; hyperparameters and confusion matrices are in the UI screenshots)
 - Notebook 03: Model Card evaluation and additional-information sections
 - Notebook 05: CloudWatch dashboard `bankpulse-model-monitoring`; Clarify / Model Monitor results (also in `notebooks/executed/05_bias_drift_monitoring.ipynb`); SageMaker endpoints list empty after clean-up
 - Notebook 06: the `bankpulse-retrain` pipeline graph and execution list in Studio
-- UI: SageMaker tracking, Monitoring and Score customers sections
+- UI: the retraining section (6. Continuous training) and the Model results metrics table
