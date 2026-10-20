@@ -13,5 +13,5 @@ ipykernel>=6.0
 xgboost==1.7.6
 # Results UI (streamlit run ui/app.py)
 streamlit>=1.38,<2
-# Architecture diagram (architecture/make_diagram.py) and notebook charts
+# Charts in notebooks 01, 02, 05 and 06
 matplotlib>=3.7

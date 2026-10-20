@@ -309,7 +309,7 @@ From the run in the AWS Academy lab. Click a thumbnail for the full image. All c
 
 ```
 bankpulse-sagemaker-mlops/
-├── architecture/        make_diagram.py -> architecture.png
+├── architecture/        architecture.png (diagram shown above)
 ├── bankpulse_core/      FRAMEWORK: config, io, aws, contract, split, encoding, feature_base,
 │                        pipeline, lineage, evaluation, monitoring, log_utils
 ├── features/            FEATURES: contact_history, campaign, economic, client_profile
