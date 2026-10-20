@@ -1,4 +1,5 @@
-# Notebooks run in SageMaker Studio (JupyterLab); the sagemaker SDK and boto3 are preinstalled there.
+# Notebooks run locally in VS Code and call SageMaker in the AWS Academy lab (see issue BP-400);
+# they also run unchanged in SageMaker Studio, where the sagemaker SDK and boto3 are preinstalled.
 pandas>=2.0,<3
 numpy>=1.24
 scikit-learn>=1.3
@@ -6,3 +7,5 @@ pyyaml>=6.0
 boto3>=1.34
 sagemaker>=2.200,<3
 pytest>=8.0
+# Jupyter kernel, so VS Code can run the notebooks with this environment
+ipykernel>=6.0
