@@ -21,6 +21,9 @@ def load_yaml(name):
 
 ENABLED = load_yaml('data_prep.yaml')['features']
 CONTRACT = load_yaml('contract.yaml')
+# Columns features may read: every contract column except the target and forbidden ones.
+FORBIDDEN = CONTRACT['forbidden_columns']
+ALLOWED = [column for column in CONTRACT['columns'] if column != CONTRACT['target'] and column not in FORBIDDEN]
 
 
 def test_config_resolves_to_twelve_unfitted_features_in_order():
@@ -32,13 +35,13 @@ def test_config_resolves_to_twelve_unfitted_features_in_order():
 
 @pytest.mark.parametrize('feature', resolve(ENABLED), ids=lambda feature: feature.key())
 def test_enabled_feature_passes_contract(feature):
-    check_inputs(feature, allowed=CONTRACT['allowed_columns'], forbidden=CONTRACT['forbidden_columns'])
+    check_inputs(feature, allowed=ALLOWED, forbidden=FORBIDDEN)
 
 
-def test_contract_keeps_target_and_leakage_out_of_allowed_columns():
-    allowed = set(CONTRACT['allowed_columns'])
-    assert CONTRACT['target'] not in allowed
-    assert not allowed & set(CONTRACT['forbidden_columns'])
+def test_contract_lists_every_dataset_column():
+    header = (CONFIG_DIR.parent / 'data/raw/bank-additional-full.csv').open(encoding='utf-8').readline()
+    assert list(CONTRACT['columns']) == [name.strip('"') for name in header.strip().split(';')]
+    assert len(ALLOWED) == 19
 
 
 def test_invalid_version_raises_clear_error():
