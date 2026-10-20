@@ -1,30 +1,69 @@
 # Data contract: allowed and forbidden columns, types, sentinel values and business rules
+#
+# Every column of bank-additional-full.csv is listed under `columns`. Columns that
+# features may read are all columns except the target and the forbidden ones.
+#
+# Quote "yes" and "no": YAML reads them unquoted as true / false.
 
-# Target column; never used as a feature input.
 target: y
-
-# Columns features may read (the raw file's columns, minus the target and forbidden ones).
-allowed_columns:
-  - age
-  - job
-  - marital
-  - education
-  - default
-  - housing
-  - loan
-  - contact
-  - month
-  - day_of_week
-  - campaign
-  - pdays
-  - previous
-  - poutcome
-  - emp.var.rate
-  - cons.price.idx
-  - cons.conf.idx
-  - euribor3m
-  - nr.employed
+positive_label: "yes"
 
 # Leakage: call duration is only known after the call ends, when the outcome is known too.
 forbidden_columns:
   - duration
+
+# Sentinel values that mean "no value" rather than a quantity.
+sentinels:
+  pdays: 999            # never contacted in an earlier campaign
+
+# type: int | float | category
+# category columns list every allowed value; int and float columns may set min / max.
+# The economic indicators have no range on purpose: they change over time, and a range
+# fitted to 2008-2010 would reject valid future data. Drift monitoring watches them instead.
+columns:
+  # Client
+  age:            {type: int, min: 17, max: 100}
+  job:            {type: category, values: [admin., blue-collar, entrepreneur, housemaid, management, retired, self-employed, services, student, technician, unemployed, unknown]}
+  marital:        {type: category, values: [divorced, married, single, unknown]}
+  education:      {type: category, values: [basic.4y, basic.6y, basic.9y, high.school, illiterate, professional.course, university.degree, unknown]}
+  default:        {type: category, values: ["no", "yes", unknown]}
+  housing:        {type: category, values: ["no", "yes", unknown]}
+  loan:           {type: category, values: ["no", "yes", unknown]}
+  # Last contact of the current campaign
+  contact:        {type: category, values: [cellular, telephone]}
+  month:          {type: category, values: [jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, dec]}
+  day_of_week:    {type: category, values: [mon, tue, wed, thu, fri]}
+  duration:       {type: int, min: 0}
+  # Campaign and contact history
+  campaign:       {type: int, min: 1}
+  pdays:          {type: int, min: 0, max: 999}
+  previous:       {type: int, min: 0}
+  poutcome:       {type: category, values: [failure, nonexistent, success]}
+  # Economic indicators (time-dependent)
+  emp.var.rate:   {type: float}
+  cons.price.idx: {type: float}
+  cons.conf.idx:  {type: float}
+  euribor3m:      {type: float}
+  nr.employed:    {type: float}
+  # Target
+  y:              {type: category, values: ["no", "yes"]}
+
+# Business rules: for rows matching `when`, `then` must hold.
+# Operators: equals, not_equals, min.
+rules:
+  - name: no_previous_contacts_means_no_outcome
+    description: A customer never contacted before has no previous outcome
+    when: {column: previous, equals: 0}
+    then: {column: poutcome, equals: nonexistent}
+  - name: previous_outcome_needs_previous_contacts
+    description: A previous outcome is only possible after at least one previous contact
+    when: {column: poutcome, not_equals: nonexistent}
+    then: {column: previous, min: 1}
+  - name: days_since_contact_needs_previous_contacts
+    description: A real pdays value (not 999) means the customer was contacted before
+    when: {column: pdays, not_equals: 999}
+    then: {column: previous, min: 1}
+  - name: previous_success_has_days_since_contact
+    description: A successful earlier campaign always has a real pdays value
+    when: {column: poutcome, equals: success}
+    then: {column: pdays, not_equals: 999}
