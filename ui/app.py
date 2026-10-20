@@ -44,13 +44,19 @@ def load_local():
             'schema': read_json(schema_path) if schema_path.exists() else None}
 
 
-@st.cache_resource
+# Lab credentials change every session (~4 h), and AWS Academy blocks the old keys, so the
+# session is rebuilt every 5 minutes (or on "Refresh") to pick up a new ~/.aws/credentials.
+@st.cache_resource(ttl=300)
 def aws():
     """boto3 session for the lab, or None when no valid credentials are available."""
     session = lab_boto_session()
     identity = tracking.safe(lambda: session.client('sts').get_caller_identity())
     if 'error' in identity:
         return None, identity['error']
+    # STS answers even for blocked keys, so check a real SageMaker read as well.
+    probe = tracking.safe(lambda: session.client('sagemaker').list_endpoints(MaxResults=1))
+    if isinstance(probe, dict) and 'error' in probe:
+        return None, probe['error']
     return session, f'{identity["Arn"].split("/")[-2]} · {session.region_name}'
 
 
@@ -87,9 +93,16 @@ def console(region, fragment):
     return f'https://{region}.console.aws.amazon.com/sagemaker/home?region={region}#/{fragment}'
 
 
+ACCESS_ERRORS = ('AccessDenied', 'ExpiredToken', 'InvalidClientTokenId', 'UnrecognizedClient')
+
+
 def show_error(result, what):
     if isinstance(result, dict) and 'error' in result:
-        st.warning(f'{what}: unavailable ({result["error"][:160]})')
+        if any(code in result['error'] for code in ACCESS_ERRORS):
+            st.warning(f'{what}: the lab credentials were rejected. If the lab session restarted, paste the new '
+                       'values into ~/.aws/credentials and click "Refresh live status".')
+        else:
+            st.warning(f'{what}: unavailable ({result["error"][:160]})')
         return True
     return False
 
@@ -109,10 +122,14 @@ with st.sidebar:
     if session:
         st.success(f'Connected to the AWS lab\n\n{who}')
     else:
-        st.info('Offline: showing saved reports.\n\nTo see live SageMaker status, start the lab, refresh '
-                '`~/.aws/credentials` ([bankpulse-lab]) and restart the app.')
+        st.info('Offline: showing saved reports.\n\nTo see live SageMaker status, start the lab, paste fresh '
+                'values into `~/.aws/credentials` ([bankpulse-lab]) and click "Refresh live status".')
+        if any(code in str(who) for code in ACCESS_ERRORS):
+            st.caption('The saved lab credentials were rejected (expired, or replaced by a new lab session).')
     if st.button('Refresh live status'):
+        aws.clear()                 # re-read ~/.aws/credentials (new lab session)
         live_status.clear()
+        st.rerun()
     st.divider()
     st.caption('Code: github.com/aishwaryagulhane05/bankpulse-sagemaker-mlops')
 
