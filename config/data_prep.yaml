@@ -49,10 +49,11 @@ features:
   # Campaign (features/campaign.py)
   campaign_intensity: v1
   capped_campaign: v1
-  # Economic indicators (features/economic.py) - time-dependent, watch for drift
-  euribor_rate: v1
-  employment_level: v1
-  economic_indicators: v1
+  # Economic indicators (features/economic.py: euribor_rate, employment_level,
+  # economic_indicators) are registered but NOT enabled. They describe the period of the
+  # call, not the customer: with the time-ordered split, every later value is outside the
+  # training range (feature PSI 8-17), so XGBoost uses them as a clock and fails on later
+  # periods. Validation PR-AUC: 0.177 with them, 0.229 without (scripts/tune_xgboost.py).
   # Client profile and contact timing (features/client_profile.py)
   age: v1
   age_band: v1

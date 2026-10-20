@@ -1,0 +1,39 @@
+{
+  "model": "xgboost",
+  "training_job": "bankpulse-xgboost-2026-10-20-19-38-10-728",
+  "validation": {
+    "rows": 6178,
+    "positive_rate": 0.1065,
+    "pr_auc": 0.2283,
+    "roc_auc": 0.6619,
+    "threshold": 0.1064,
+    "precision": 0.2604,
+    "recall": 0.3419,
+    "f1": 0.2957,
+    "lift_top_decile": 2.663,
+    "confusion_matrix": {
+      "tn": 4881,
+      "fp": 639,
+      "fn": 433,
+      "tp": 225
+    }
+  },
+  "test": {
+    "rows": 6179,
+    "positive_rate": 0.3845,
+    "pr_auc": 0.4673,
+    "roc_auc": 0.6291,
+    "threshold": 0.1064,
+    "precision": 0.4733,
+    "recall": 0.3022,
+    "f1": 0.3689,
+    "lift_top_decile": 1.239,
+    "confusion_matrix": {
+      "tn": 3004,
+      "fp": 799,
+      "fn": 1658,
+      "tp": 718
+    }
+  },
+  "threshold": 0.106433
+}

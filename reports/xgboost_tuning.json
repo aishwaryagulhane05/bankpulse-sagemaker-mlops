@@ -1,0 +1,111 @@
+{
+  "features": {
+    "previously_contacted": "v1",
+    "prior_success": "v1",
+    "previous_contacts": "v1",
+    "campaign_intensity": "v1",
+    "capped_campaign": "v1",
+    "age": "v1",
+    "age_band": "v1",
+    "categorical_profile": "v1",
+    "contact_timing": "v1"
+  },
+  "fixed": {
+    "objective": "binary:logistic",
+    "eval_metric": "aucpr",
+    "subsample": 0.8,
+    "seed": 0
+  },
+  "num_round": 500,
+  "early_stopping_rounds": 30,
+  "best": {
+    "max_depth": 4,
+    "min_child_weight": 1,
+    "eta": 0.05,
+    "colsample_bytree": 0.5,
+    "validation_aucpr": 0.229,
+    "best_round": 112
+  },
+  "top10": [
+    {
+      "max_depth": 4,
+      "min_child_weight": 1,
+      "eta": 0.05,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.229,
+      "best_round": 112
+    },
+    {
+      "max_depth": 2,
+      "min_child_weight": 1,
+      "eta": 0.05,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.2252,
+      "best_round": 215
+    },
+    {
+      "max_depth": 3,
+      "min_child_weight": 1,
+      "eta": 0.05,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.225,
+      "best_round": 167
+    },
+    {
+      "max_depth": 2,
+      "min_child_weight": 1,
+      "eta": 0.1,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.2248,
+      "best_round": 188
+    },
+    {
+      "max_depth": 6,
+      "min_child_weight": 1,
+      "eta": 0.05,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.2243,
+      "best_round": 27
+    },
+    {
+      "max_depth": 4,
+      "min_child_weight": 1,
+      "eta": 0.1,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.2236,
+      "best_round": 57
+    },
+    {
+      "max_depth": 6,
+      "min_child_weight": 20,
+      "eta": 0.05,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.2227,
+      "best_round": 58
+    },
+    {
+      "max_depth": 6,
+      "min_child_weight": 20,
+      "eta": 0.1,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.2217,
+      "best_round": 21
+    },
+    {
+      "max_depth": 3,
+      "min_child_weight": 20,
+      "eta": 0.1,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.2215,
+      "best_round": 62
+    },
+    {
+      "max_depth": 3,
+      "min_child_weight": 1,
+      "eta": 0.1,
+      "colsample_bytree": 0.5,
+      "validation_aucpr": 0.2213,
+      "best_round": 57
+    }
+  ]
+}

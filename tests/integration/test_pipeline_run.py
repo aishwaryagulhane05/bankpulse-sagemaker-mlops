@@ -42,7 +42,7 @@ def test_outputs_have_expected_shapes(first_run):
     # 41,188 rows split 70 / 15 / 15 in time order.
     assert len(train) == 28831 and len(test_features) == len(test_labels) == 6179
     # Label first in train; features only in the Batch Transform input.
-    assert train.shape[1] == n_columns + 1 and test_features.shape[1] == n_columns == 73
+    assert train.shape[1] == n_columns + 1 and test_features.shape[1] == n_columns == 68
     assert set(train[0]) == {0, 1} and set(test_labels[0]) == {0, 1}
 
 

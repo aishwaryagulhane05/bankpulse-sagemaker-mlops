@@ -84,4 +84,4 @@ def test_project_config_loads_and_points_at_real_files():
     config = load_config(REPO / 'config' / 'data_prep.yaml')
     assert Path(config['data']['path']).is_file()
     assert Path(config['contract']).is_file()
-    assert len(config['features']) == 12
+    assert len(config['features']) == 9          # economic indicators registered but not enabled
