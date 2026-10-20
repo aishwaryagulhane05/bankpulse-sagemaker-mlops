@@ -1,178 +1,233 @@
 # bankpulse-sagemaker-mlops
 
-An end-to-end MLOps system that predicts customer term deposit subscriptions using XGBoost, with AWS SageMaker for training, model registry, batch and real-time inference, and Amazon S3 and CloudWatch for monitoring.
+An end-to-end MLOps system that predicts whether a bank customer will subscribe to a term deposit, **before** the call is made. It uses a tested Python framework for the data, and AWS SageMaker for training, batch scoring, the model registry, the Model Card, a real-time endpoint with Data Capture, and monitoring with Amazon CloudWatch.
 
-> **Status:** Phase 2 (feature engine) complete. The time-ordered splitter, encoding helpers, feature interface and registry, and 12 versioned features are implemented and tested. The other framework modules and the notebooks are still labelled placeholders; the SageMaker work is being built step by step in AWS SageMaker Studio.
+> **Status:** complete. Every stage has run end to end in an AWS Academy Learner Lab (`us-east-1`), and the framework has 228 passing tests.
+
+![Architecture: local framework, SageMaker components in the AWS lab, and monitoring](architecture/architecture.png)
+
+## Results at a glance
+
+| | Logistic baseline | SageMaker XGBoost |
+|---|---|---|
+| Validation PR-AUC | 0.222 | **0.228** |
+| Test PR-AUC | **0.471** | 0.467 |
+| Test F1 at the validation threshold | 0.306 | **0.369** |
+| Test recall | 0.224 | **0.302** |
+| Test lift, top 10% | 1.19× | **1.24×** |
+| Subscribers found in test (true positives) | 533 | **718** |
+
+- **Comparison:** both models use the same 68 inputs. The threshold is chosen on validation, and test is evaluated once.
+- **Outcome:** XGBoost finds 35% more subscribers at the chosen threshold. Ranking quality (PR-AUC) is essentially tied.
+- **Endpoint check:** the real-time endpoint returns exactly the same scores as Batch Transform for the same customers (maximum difference 0.0).
+- **Monitoring:** live traffic shows strong drift (17 drifted inputs, prediction PSI 2.95). It also shows an age-band selection ratio of 0.30, which triggers a fairness review (see [Monitoring](#monitoring)).
 
 ## Problem
 
-A bank runs phone campaigns to sell term deposits, and only about 11% of contacted customers subscribe. The goal is to predict, **before a call is made**, the probability that a customer will subscribe, so the bank can call the most promising customers first.
+A bank runs phone campaigns to sell term deposits, and only about 11% of contacted customers subscribe. The model scores each customer's probability of subscribing, so the bank can call the most promising customers first.
 
-- **Type:** binary classification (target `y`: yes / no)
-- **Key constraint:** only information known before the call may be used, so `duration` (call length) is excluded to prevent target leakage.
+- **Type:** binary classification (target `y`: yes / no).
+- **Leakage:** only information known *before* the call may be used, so `duration` (call length) is forbidden.
+- **Time:** the data is in date order. Splits are time-ordered: the oldest 70% of rows train the model, the next 15% validate it, and the newest 15% test it. A random split would leak future behaviour into training.
 
 ## Dataset
 
-[UCI Bank Marketing](https://archive.ics.uci.edu/dataset/222/bank+marketing) (Moro, Cortez & Rita, 2014), `bank-additional-full.csv`.
+[UCI Bank Marketing](https://archive.ics.uci.edu/dataset/222/bank+marketing) (Moro, Cortez & Rita, 2014), file `bank-additional-full.csv`.
 
 | Property | Value |
 |---|---|
 | Records | 41,188 phone contacts, May 2008 – November 2010 |
-| Inputs | 20 (client, campaign, previous contact and economic indicators) |
-| Target | `y`, subscribed to a term deposit (about 11% yes) |
-| Format | `;`-separated CSV, rows in date order |
-| Location | `data/raw/bank-additional-full.csv` |
-| Column descriptions | `data/raw/bank-additional-names.txt` |
+| Columns | 20 inputs + target `y` |
+| Positive rate | 11.27% overall; **5.6% train, 10.7% validation, 38.5% test** (strong drift) |
+| Quality | no missing values, 12 duplicate rows, `unknown` in 6 categorical columns (up to 20.9% for `default`), `pdays = 999` (never contacted) in 96.3% of rows |
+| Location | `data/raw/` (column descriptions in `bank-additional-names.txt`) |
 
-Notes: `pdays = 999` means the client was not previously contacted, and several categorical columns use the value `unknown`.
+## How it works
 
-## Architecture
+### 1. Data framework (local Python, tested)
 
-![Architecture: local framework, SageMaker components in the AWS lab, and monitoring](architecture/architecture.png)
+| Module | What it does |
+|---|---|
+| `bankpulse_core/contract.py` | Checks the raw file against `config/contract.yaml`: 21 columns, their types, allowed values and ranges, 4 business rules, and the forbidden `duration`. It also produces the quality report. |
+| `bankpulse_core/split.py` | Time-ordered 70 / 15 / 15 split, with checks for overlap and time order. |
+| `bankpulse_core/feature_base.py` | Feature interface and versioned registry, keyed by `(name, version)`. |
+| `bankpulse_core/encoding.py` | One-hot encoding with an `__other` column for unseen values, quantile capping, and saved state for each. |
+| `features/*.py` | Versioned business features (see [Features](#features)). |
+| `bankpulse_core/pipeline.py` | `run(config)` does read → validate → split → fit features on train → transform → output checks → XGBoost CSVs. `encode_records()` encodes live records for the endpoint. |
+| `bankpulse_core/lineage.py` | `run_metadata.json`: raw-data and output SHA-256 hashes, git commit, config, feature versions. |
+| `bankpulse_core/evaluation.py` | Batch Transform parsing, threshold choice on validation, PR-AUC, lift and comparison. |
+| `bankpulse_core/monitoring.py` | Data Capture parsing, PSI drift, prediction drift, age-band selection rates, the report. |
+| `bankpulse_core/aws.py`, `io.py` | Lab session and `LabRole`, local and S3 I/O, using the default credential chain (never keys in code). |
 
-- **Blue (local Python framework):** validates, splits and encodes the data, and writes the XGBoost files with lineage. It also computes the evaluation and monitoring metrics.
-- **Orange (AWS Academy lab):** the SageMaker components, which run as `LabRole`.
-- **Green (monitoring):** turns the captured traffic into a drift and subgroup report and publishes CloudWatch metrics.
+The core never imports `features/`. `config/data_prep.yaml` chooses which features and versions run, so a new or upgraded feature needs no pipeline change.
 
-Regenerate the diagram with `python architecture/make_diagram.py`.
+### 2. SageMaker in the AWS lab (notebooks)
 
-## SageMaker and AWS components
-
-| Component | Purpose | Notebook |
+| Notebook | SageMaker / AWS components | Result in the lab |
 |---|---|---|
-| Amazon S3 | Data lake for raw data, splits, model artifacts, predictions, captures and reports | 01 |
-| SageMaker Studio / JupyterLab | Development environment | All |
-| SageMaker Training Job (XGBoost) | Managed model training | 02 |
-| SageMaker Batch Transform | Score validation and test sets | 02 |
-| SageMaker Model Registry | Model versioning and approval | 03 |
-| SageMaker Model Cards | Intended use, training and evaluation documentation | 03 |
-| SageMaker Models, Endpoint Configurations, Real-Time Endpoints | Online predictions | 04 |
-| SageMaker Data Capture | Log requests and predictions to S3 | 04 |
-| SageMaker Clarify / Model Bias Monitor | Managed bias analysis (may be blocked in the AWS Academy lab) | 05 |
-| Amazon CloudWatch | Custom monitoring metrics and alarms | 05 |
-| IAM (LabRole) | Permissions for all SageMaker resources | All |
-
-## Repository structure
-
-```
-bankpulse-sagemaker-mlops/
-├── data/raw/                     Dataset and column descriptions
-├── notebooks/
-│   ├── 01_data_preparation.ipynb       S3 data lake, leakage removal, encoding, chronological split
-│   ├── 02_training_evaluation.ipynb    XGBoost training job and Batch Transform evaluation
-│   ├── 03_model_registry.ipynb         Model Registry and Model Card
-│   ├── 04_inference_capture.ipynb      Real-time endpoint with data capture
-│   └── 05_bias_drift_monitoring.ipynb  Drift, bias and CloudWatch monitoring
-├── bankpulse_core/               FRAMEWORK: generic, reusable, no business logic
-│   ├── config.py                 Load and check settings
-│   ├── io.py                     Local and S3 read/write, file hashes
-│   ├── contract.py               Data contract and validation rules
-│   ├── split.py                  Time-based splits
-│   ├── encoding.py               Encoding, capping, unseen categories
-│   ├── feature_base.py           Feature interface and registry
-│   ├── pipeline.py               Config-driven pipeline runner
-│   ├── lineage.py                Run metadata and versions
-│   ├── evaluation.py             Batch Transform parsing, threshold, metrics
-│   ├── monitoring.py             Drift and subgroup checks
-│   └── log_utils.py              Shared logging setup
-├── features/                     FEATURES: business logic, one module per group
-│   ├── contact_history.py        previously_contacted, prior_success, previous_contacts
-│   ├── campaign.py               campaign_intensity, capped_campaign
-│   ├── economic.py               euribor_rate, employment_level, economic_indicators
-│   └── client_profile.py         age, age_band, categorical_profile, contact_timing
-├── config/
-│   ├── data_prep.yaml            Data source, splits, enabled features and versions
-│   └── contract.yaml             Allowed/forbidden columns and rules
-├── tests/
-│   ├── core/                     Framework tests
-│   └── features/                 One test file per feature module
-├── reports/                      Monitoring reports and evaluation results
-├── architecture/                 Architecture diagram
-├── pyproject.toml                Installable package: pip install -e .
-└── requirements.txt
-```
-
-### Framework vs features
-
-- **`bankpulse_core/`** holds reusable functions shared by every feature and notebook. It never imports from `features/`.
-- **`features/`** holds feature definitions. Each feature has a name, version, required inputs and owner, and uses the core for I/O, validation, encoding and fitting on training data only.
-- **`config/data_prep.yaml`** decides which features and versions run, so adding or upgrading a feature means adding a module and switching it on in config, not editing the pipeline.
-- **Notebooks** only call the framework (`pipeline.run()`); they hold no reusable logic.
-
-To make both packages importable in notebooks and tests, run `pip install -e .` from the repository root.
+| `01_data_preparation` | S3 data lake, SageMaker session, `LabRole` | Quality report, pipeline outputs uploaded to `bank-campaign-mlops/`, hash verified in S3 |
+| `02_training_evaluation` | **Training Job** (built-in XGBoost 1.7-1, `ml.m5.large`), **Batch Transform** (2 jobs) | Job completed in 156 billable seconds; evaluation vs the baseline |
+| `03_model_registry` | **Model Registry** (package group, version with model metrics, approval), **Model Card** | Version 1 **Approved**; card `bankpulse-term-deposit-v1` |
+| `04_inference_capture` | **Model**, **Endpoint configuration**, **Real-time endpoint**, **Data Capture**, `InvokeEndpoint` | 200 new customers scored; capture files in S3 |
+| `05_bias_drift_monitoring` | **CloudWatch** metrics, alarm and dashboard; **Model Monitor** baseline; **Clarify** (attempted) | Monitoring report; 4 metrics, alarm and dashboard; clean-up cell |
 
 ## Features
 
-All 12 features are enabled at v1 in `config/data_prep.yaml`. None of them reads `duration`, and every learned value (caps, category lists) is fitted on the training split only and saved as JSON.
+Nine features are enabled (68 model inputs). None reads `duration`, and every learned value is fitted on the training split only and saved in `feature_schema.json`.
 
-| Feature | Version | Inputs | Output | Learns from training |
+| Feature | Version | Inputs | Output | Learned on train |
 |---|---|---|---|---|
-| `previously_contacted` | v1 | `pdays` | 1 if `pdays` is not the 999 "never contacted" value | – |
+| `previously_contacted` | v1 | `pdays` | 1 unless `pdays` is the 999 "never contacted" value | – |
 | `prior_success` | v1 | `poutcome` | 1 if the previous campaign succeeded | – |
 | `previous_contacts` | v1 | `previous` | Raw count | – |
 | `campaign_intensity` | v1 | `campaign` | Raw count | – |
-| `capped_campaign` | v1 | `campaign` | Count clipped at the 99th percentile | Cap |
-| `euribor_rate` | v1 | `euribor3m` | Raw value (time-dependent, watch for drift) | – |
-| `employment_level` | v1 | `nr.employed` | Raw value (time-dependent, watch for drift) | – |
-| `economic_indicators` | v1 | `emp.var.rate`, `cons.price.idx`, `cons.conf.idx` | One column each (time-dependent, watch for drift) | – |
+| `capped_campaign` | v1 (v2 available) | `campaign` | Count clipped at the 99th percentile (v2: then `log1p`) | Cap |
 | `age` | v1 | `age` | Raw age | – |
 | `age_band` | v1 | `age` | One-hot `<30`, `30-44`, `45-59`, `60+` | – |
 | `categorical_profile` | v1 | `job`, `marital`, `education`, `default`, `housing`, `loan` | One-hot | Category lists |
 | `contact_timing` | v1 | `contact`, `month`, `day_of_week` | One-hot | Category lists |
 
-- **Column names:** single-column features use the feature name. Multi-column outputs use `<feature>__<category>`, or `<feature>__<column>__<category>` when several raw columns are encoded.
-- **Unseen values:** a category not seen in training goes to that column's `__other` column, while the dataset's own `unknown` stays a normal category. For example, `month = sep` appears only after the training period.
-- **Output:** fitted on the training split, the 12 features give 73 columns.
+**Registered but not enabled:** `euribor_rate`, `employment_level` and `economic_indicators`.
+- **Why:** they describe the *period* of the call, not the customer. With a time-ordered split, every later value is outside the training range (feature PSI 8–17), so XGBoost used them as a clock.
+- **Effect:** validation PR-AUC was 0.177 with them and 0.229 without (`scripts/tune_xgboost.py`).
 
-## Running the tests
+Other conventions:
+- **Column names:** `<feature>__<category>`, or `<feature>__<column>__<category>` for features over several columns.
+- **Unseen values:** a value never seen in training goes to `__other`, while `unknown` stays a normal category. For example, September appears only after the training period, so 570 test rows go to `contact_timing__month__other`.
+
+## Model training and selection
+
+- **Hyperparameters:** chosen by `scripts/tune_xgboost.py`, a 64-setting grid scored on **validation PR-AUC only**, using local XGBoost 1.7.6, the container's version. Best: `max_depth=4, eta=0.05, min_child_weight=1, colsample_bytree=0.5, subsample=0.8`, with early stopping on validation `aucpr`.
+- **Threshold:** 0.106, the best F1 on validation, reused unchanged on test.
+- **Approval rule:**
+  - **Non-inferiority:** approve if test PR-AUC is at most 0.01 below the logistic baseline on the same features. The result was −0.0039, so the version was approved.
+  - **Disclosure:** the margin was set after the first results, and the registry's approval description says so. A stricter "must beat the baseline" rule would have rejected this version.
+- **Reports:** `reports/baseline_metrics.json`, `xgboost_tuning.json`, `xgboost_metrics.json`, `model_comparison.json`.
+
+## Monitoring
+
+`reports/monitoring_report.json`, built from the endpoint's captured traffic (the newest 200 customers) and compared with the training data:
+
+| Metric | Value | Status |
+|---|---|---|
+| Max feature PSI | 3.43 (`previous_contacts`) | alert: 17 inputs above 0.2 |
+| Prediction PSI | 2.95 (mean score 0.07 → 0.25) | alert |
+| Share of customers above the threshold | 41% | |
+| Age-band selection ratio, min/max | **0.30** | alert (below 0.8) |
+
+The age-band selection rates at the threshold are: 60+ 77%, under 30 54%, 30–44 31%, 45–59 23%.
+- **Possible cause:** this partly reflects real differences in subscription rates by age in this period.
+- **Action:** it still needs a fairness review before the scores are used to decide who is called.
+- **Caveat:** the live sample is small (200 customers).
+
+**CloudWatch:**
+- **Metrics:** the four headline values under `BankPulse/ModelMonitoring`, with the endpoint as the dimension.
+- **Alarm:** `<endpoint>-feature-drift` fires when max PSI is above 0.2.
+- **Dashboard:** `bankpulse-model-monitoring`.
+
+**Managed SageMaker monitoring** (results in `reports/managed_monitoring_attempts.json`):
+- Model Monitor baseline job: **completed**.
+- Monitoring schedule and Clarify bias job: **rejected by AWS**, with "in maintenance mode and not available to new customers". The custom report above covers the same checks.
+
+## Running it
+
+### Locally (no AWS needed)
 
 ```bash
 pip install -r requirements.txt
 pip install -e .
-pytest -v
+pytest -q
 ```
 
-Tests run locally before each merge; there is no hosted CI.
+- `python scripts/quality_report.py`: contract checks and the quality report.
+- `python scripts/baseline.py`: runs the pipeline and the logistic baseline.
+- `python scripts/tune_xgboost.py`: the validation-only hyperparameter search.
 
-## Planned S3 layout
-
-```
-s3://<sagemaker-bucket>/bank-campaign-mlops/
-├── raw/  processed/  train/  validation/  test/
-├── model-artifacts/  feature-schema/  batch-predictions/
-└── inference-capture/  monitoring-reports/
-```
-
-## Environment
-
-- **Runs in:** notebooks run locally in VS Code and create SageMaker resources in the AWS Academy Learner Lab, using the lab's `LabRole`. They also run unchanged in SageMaker Studio.
-- **Region:** `us-east-1`.
-- **Instance type:** `ml.m5.large` for training, Batch Transform and the endpoint.
-- **Python packages:** listed in `requirements.txt` (`pip install -r requirements.txt`, then `pip install -e .`).
+Outputs go to `data/processed/` (git-ignored) and `reports/`.
 
 ### Connecting to the AWS lab from a laptop
 
-No credentials are ever stored in the repository. Each lab session:
+No credentials are stored in the repository. Each lab session:
 
 1. Start the lab, open **AWS Details → AWS CLI: Show**, and paste the three values into `~/.aws/credentials` under `[bankpulse-lab]`. The file has no extension: in Notepad, choose "Save as type: All files".
 2. Once only: put `[profile bankpulse-lab]` and `region = us-east-1` in `~/.aws/config`.
-3. In PowerShell, from the repository folder:
-
+3. Check the connection. It prints no secrets:
    ```powershell
    .venv\Scripts\Activate.ps1
-   $env:AWS_PROFILE = "bankpulse-lab"
-   $env:BANKPULSE_ROLE_ARN = "arn:aws:iam::<account-id>:role/LabRole"   # IAM -> Roles -> LabRole
-   $env:SAGEMAKER_SUPPRESS_V2_WARNING = "1"
    python scripts\check_aws.py
    ```
+   The code picks the `bankpulse-lab` profile automatically, and uses `LabRole` in the signed-in account. Outside Studio, `get_execution_role()` would return the sign-in role, which SageMaker cannot use. Set `BANKPULSE_ROLE_ARN` only to use another role.
+4. Run notebooks 01 → 05 in order. Each saves what the next needs in `data/processed/sagemaker_state.json`, which is git-ignored because it holds ARNs.
 
-   The script checks the credentials, region, role, SageMaker access and default bucket without printing any secret. Outside Studio, `sagemaker.get_execution_role()` does not work, so notebooks read the role from `BANKPULSE_ROLE_ARN`.
-4. Lab credentials expire when the session ends. Paste fresh values next time, and click **End Lab** when finished.
-- **Cost:** delete the endpoint, endpoint configuration and model when finished, because real-time endpoints are billed every hour they run.
+The notebooks also run unchanged in SageMaker Studio, where Studio's execution role is used.
 
-## Evaluation approach
+### Cost and clean-up
 
-The classes are imbalanced (about 11% positive), so accuracy alone is misleading. The model will be evaluated with PR-AUC, precision, recall, F1-score and a confusion matrix. The decision threshold is chosen on the validation set, and the final results are reported once on the held-out test set.
+- **Billed only while running:** the training job and the two transform jobs.
+- **Billed every hour until deleted:** the real-time endpoint (`ml.m5.large`, about $0.12/hour). Ending the lab session does **not** stop it.
+- **To clean up:** in notebook 05, run the setup cell, set `CLEAN_UP = True` in the last cell, and run only that cell. It deletes the endpoint, its configuration and model (and a monitoring schedule, if one exists) and prints the endpoints still running.
+- **Kept, costing nothing or almost nothing:** S3 objects, the registry, the Model Card and CloudWatch.
+
+## Screenshots
+
+Executed copies of the notebooks, with all outputs, are saved locally in `notebooks/executed/`, which is git-ignored because outputs show the account ID. Console screenshots for each stage are listed in the "Screenshots" checklist of the matching GitHub issue (#34–#55):
+
+| Stage | Where |
+|---|---|
+| Data lake | S3 → `sagemaker-us-east-1-<account>` → `bank-campaign-mlops/` |
+| Training and Batch Transform | SageMaker → Training jobs; Batch transform jobs |
+| Registry and Model Card | SageMaker Studio → Models → Registered models; SageMaker → Governance → Model cards |
+| Endpoint and Data Capture | SageMaker → Endpoints; S3 `inference-capture/` |
+| Monitoring | CloudWatch → Dashboards `bankpulse-model-monitoring`, Alarms, Metrics `BankPulse/ModelMonitoring` |
+
+## Repository structure
+
+```
+bankpulse-sagemaker-mlops/
+├── architecture/        make_diagram.py -> architecture.png
+├── bankpulse_core/      FRAMEWORK: config, io, aws, contract, split, encoding, feature_base,
+│                        pipeline, lineage, evaluation, monitoring, log_utils
+├── features/            FEATURES: contact_history, campaign, economic, client_profile
+├── config/              data_prep.yaml (data, split, S3 prefix, enabled features), contract.yaml
+├── data/raw/            dataset and column descriptions (data/processed/ is generated, git-ignored)
+├── notebooks/           01-05, committed without outputs (executed/ copies stay local)
+├── reports/             quality, baseline, tuning, XGBoost, comparison, monitoring, managed-monitoring results
+├── scripts/             check_aws, quality_report, baseline, tune_xgboost
+├── tests/               core/, features/, integration/ (228 tests)
+├── pyproject.toml       pip install -e .
+└── requirements.txt
+```
+
+### S3 layout
+
+```
+s3://sagemaker-us-east-1-<account>/bank-campaign-mlops/
+├── raw/                 original CSV
+├── train/  validation/  label-first XGBoost files (one per folder = one training channel)
+├── batch-input/         feature-only files for Batch Transform
+├── labels/              validation and test labels for evaluation
+├── feature-schema/      column order and feature states, used by the endpoint
+├── run-metadata/        lineage of the pipeline run
+├── model-artifacts/     model.tar.gz from the training job
+├── batch-predictions/   Batch Transform .out files
+├── reports/             metrics, comparison, model-quality JSON for the registry
+├── inference-capture/   Data Capture JSON Lines from the endpoint
+├── model-monitor/       Model Monitor baseline statistics and constraints
+└── monitoring-reports/  dated monitoring reports
+```
+
+## Limitations
+
+- **Drift dominates.** The test period's subscription rate (38%) is about seven times training's (6%), so absolute scores don't transfer between periods. The model should be retrained on recent data, and the drift alarm is the trigger.
+- **Modest ranking quality.** Test PR-AUC is about 0.47 against a 0.38 base rate, and lift is about 1.2× once drift is accounted for. The model helps prioritise calls; it doesn't predict individual outcomes.
+- **Small live sample.** Monitoring used 200 captured customers. Its rates per age band are indicative only.
+- **One bank, 2008–2010.** The data is from a single Portuguese bank during a financial crisis.
+- **Lab limits.** Clarify and Model Monitor schedules are unavailable to new accounts, so bias and drift checks use the project's own code.
+- **The v2 feature upgrade** (`capped_campaign v2`) is implemented. Its SageMaker retrain is still to do (issue #58).
+
+## Responsible use
+
+The model is meant for ranking call lists that campaign staff review. It is **not** for credit, lending, pricing or eligibility decisions (see the Model Card). Age and job are inputs, so selection rates by age band are monitored, and a ratio below 0.8 requires review.
 
 ## Reference
 
