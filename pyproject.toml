@@ -1,0 +1,12 @@
+# Makes bankpulse_core and features importable from notebooks and tests: pip install -e .
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bankpulse"
+version = "0.1.0"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["bankpulse_core*", "features*"]
