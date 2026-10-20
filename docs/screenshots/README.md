@@ -211,12 +211,3 @@ Screenshots from the run in the AWS Academy Learner Lab (`us-east-1`), in notebo
 **ui-score-distribution.png**: Score distribution of those 200 customers, coloured by whether they actually subscribed.
 
 ![ui-score-distribution.png](ui-score-distribution.png)
-
-## Still to capture
-
-- Notebook 01: object details of `train/train.csv`
-- Notebook 02: the evaluation table and PR curve from the notebook (also in `notebooks/executed/02_training_evaluation.ipynb`; hyperparameters and confusion matrices are in the UI screenshots)
-- Notebook 03: Model Card evaluation and additional-information sections
-- Notebook 05: CloudWatch dashboard `bankpulse-model-monitoring`; Clarify / Model Monitor results (also in `notebooks/executed/05_bias_drift_monitoring.ipynb`); SageMaker endpoints list empty after clean-up
-- Notebook 06: the `bankpulse-retrain` pipeline graph and execution list in Studio
-- UI: the retraining section (6. Continuous training) and the Model results metrics table
