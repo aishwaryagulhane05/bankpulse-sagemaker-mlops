@@ -1,0 +1,37 @@
+{
+  "model": "logistic_regression",
+  "validation": {
+    "rows": 6178,
+    "positive_rate": 0.1065,
+    "pr_auc": 0.2187,
+    "roc_auc": 0.667,
+    "threshold": 0.148,
+    "precision": 0.2433,
+    "recall": 0.345,
+    "f1": 0.2854,
+    "lift_top_decile": 2.526,
+    "confusion_matrix": {
+      "tn": 4814,
+      "fp": 706,
+      "fn": 431,
+      "tp": 227
+    }
+  },
+  "test": {
+    "rows": 6179,
+    "positive_rate": 0.3845,
+    "pr_auc": 0.4519,
+    "roc_auc": 0.5803,
+    "threshold": 0.148,
+    "precision": 0.476,
+    "recall": 0.1418,
+    "f1": 0.2185,
+    "lift_top_decile": 1.214,
+    "confusion_matrix": {
+      "tn": 3432,
+      "fp": 371,
+      "fn": 2039,
+      "tp": 337
+    }
+  }
+}
