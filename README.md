@@ -73,6 +73,7 @@ bankpulse-sagemaker-mlops/
 │   ├── 04_inference_capture.ipynb      Real-time endpoint with data capture
 │   └── 05_bias_drift_monitoring.ipynb  Drift, bias and CloudWatch monitoring
 ├── bankpulse_core/               FRAMEWORK: generic, reusable, no business logic
+│   ├── config.py                 Load and check settings
 │   ├── io.py                     Local and S3 read/write, file hashes
 │   ├── contract.py               Data contract and validation rules
 │   ├── split.py                  Time-based splits
@@ -80,6 +81,7 @@ bankpulse-sagemaker-mlops/
 │   ├── feature_base.py           Feature interface and registry
 │   ├── pipeline.py               Config-driven pipeline runner
 │   ├── lineage.py                Run metadata and versions
+│   ├── evaluation.py             Batch Transform parsing, threshold, metrics
 │   ├── monitoring.py             Drift and subgroup checks
 │   └── log_utils.py              Shared logging setup
 ├── features/                     FEATURES: business logic, one module per group
