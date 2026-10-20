@@ -231,7 +231,7 @@ Pick a section in the sidebar:
 
 ## Screenshots
 
-From the run in the AWS Academy lab. Click a thumbnail for the full image. All captions are in [docs/screenshots](docs/screenshots/README.md), and the executed notebooks with every output are in [`notebooks/executed/`](notebooks/executed/). A video walkthrough goes in [docs/video-demo](docs/video-demo/README.md).
+From the run in the AWS Academy lab. Click a thumbnail for the full image. All captions are in [docs/screenshots](docs/screenshots/README.md), and the executed notebooks with every output are in [`notebooks/executed/`](notebooks/executed/). Video demo of the app: [docs/video-demo/bankpulse_vedio_demo.webm](docs/video-demo/bankpulse_vedio_demo.webm) (download to play).
 
 **Notebook 01: S3 data lake**
 
