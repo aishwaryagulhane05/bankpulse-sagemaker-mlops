@@ -26,24 +26,15 @@ A bank runs phone campaigns to sell term deposits, and only about 11% of contact
 
 Notes: `pdays = 999` means the client was not previously contacted, and several categorical columns use the value `unknown`.
 
-## Planned architecture
+## Architecture
 
-```
-Amazon S3 (data lake)
-  raw → processed → chronological train / validation / test
-        │
-SageMaker Studio (JupyterLab): preprocessing, leakage removal, encoding
-        │
-SageMaker Training Job (built-in XGBoost) → model artifact in S3
-        │
-Batch Transform → evaluation (PR-AUC, precision, recall, F1)
-        │
-Model Registry + Model Card (versioning, approval, documentation)
-        │
-Real-time endpoint ──→ Data capture → S3
-        │
-Drift and bias monitoring → S3 reports → CloudWatch metrics and alarms
-```
+![Architecture: local framework, SageMaker components in the AWS lab, and monitoring](architecture/architecture.png)
+
+- **Blue (local Python framework):** validates, splits and encodes the data, and writes the XGBoost files with lineage. It also computes the evaluation and monitoring metrics.
+- **Orange (AWS Academy lab):** the SageMaker components, which run as `LabRole`.
+- **Green (monitoring):** turns the captured traffic into a drift and subgroup report and publishes CloudWatch metrics.
+
+Regenerate the diagram with `python architecture/make_diagram.py`.
 
 ## SageMaker and AWS components
 
