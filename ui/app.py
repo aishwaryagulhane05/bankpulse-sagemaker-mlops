@@ -67,6 +67,8 @@ def live_status(_session, _state, state_key):
         'registry': tracking.safe(lambda: tracking.registry(sm, state['model_package_group'])),
         'model_card': tracking.safe(lambda: tracking.model_card(sm, state['model_card'])),
         'endpoint': tracking.safe(lambda: tracking.endpoint(sm, state['endpoint'])),
+        'pipeline': tracking.safe(lambda: tracking.pipeline_executions(sm, 'bankpulse-retrain')),
+        'triggers': tracking.safe(lambda: tracking.trigger_rules(_session.client('events'), 'bankpulse-retrain')),
         'alarm': tracking.safe(lambda: tracking.alarm(cw, state['cloudwatch']['alarm'])),
         'metrics': tracking.safe(lambda: tracking.latest_metrics(
             cw, state['cloudwatch']['namespace'], state['endpoint'],
@@ -211,6 +213,17 @@ if page == 'SageMaker tracking':
                 st.link_button('Open endpoint', console(region, f'endpoints/{ep["name"]}'))
                 st.warning('The endpoint bills every hour it runs. Delete it with the clean-up cell in notebook 05 '
                            'when finished.', icon='💰')
+
+        st.subheader('6. Continuous training (bankpulse-retrain pipeline)')
+        st.caption('New monthly data, a monthly schedule or the drift alarm start the pipeline; each successful run '
+                   'registers a challenger as PendingManualApproval (docs/retraining.md).')
+        if not show_error(live['triggers'], 'Triggers') and live['triggers']:
+            st.dataframe(pd.DataFrame(live['triggers']), hide_index=True)
+        if not show_error(live['pipeline'], 'Pipeline') and live['pipeline']:
+            runs = pd.DataFrame(live['pipeline'])
+            runs['started'] = runs['started'].astype(str).str.slice(0, 19)
+            st.dataframe(runs, hide_index=True)
+            st.link_button('Open pipelines', console(region, 'pipelines'))
 
 # ---- Model results ------------------------------------------------------------------------------
 if page == 'Model results':
