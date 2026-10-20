@@ -154,10 +154,29 @@ s3://<sagemaker-bucket>/bank-campaign-mlops/
 
 ## Environment
 
-- **Runs in:** AWS Academy Learner Lab, SageMaker Studio (JupyterLab), using the lab's `LabRole`.
+- **Runs in:** notebooks run locally in VS Code and create SageMaker resources in the AWS Academy Learner Lab, using the lab's `LabRole`. They also run unchanged in SageMaker Studio.
 - **Region:** `us-east-1`.
 - **Instance type:** `ml.m5.large` for training, Batch Transform and the endpoint.
-- **Python packages:** listed in `requirements.txt`. The SageMaker SDK and boto3 are preinstalled in SageMaker Studio.
+- **Python packages:** listed in `requirements.txt` (`pip install -r requirements.txt`, then `pip install -e .`).
+
+### Connecting to the AWS lab from a laptop
+
+No credentials are ever stored in the repository. Each lab session:
+
+1. Start the lab, open **AWS Details → AWS CLI: Show**, and paste the three values into `~/.aws/credentials` under `[bankpulse-lab]`. The file has no extension: in Notepad, choose "Save as type: All files".
+2. Once only: put `[profile bankpulse-lab]` and `region = us-east-1` in `~/.aws/config`.
+3. In PowerShell, from the repository folder:
+
+   ```powershell
+   .venv\Scripts\Activate.ps1
+   $env:AWS_PROFILE = "bankpulse-lab"
+   $env:BANKPULSE_ROLE_ARN = "arn:aws:iam::<account-id>:role/LabRole"   # IAM -> Roles -> LabRole
+   $env:SAGEMAKER_SUPPRESS_V2_WARNING = "1"
+   python scripts\check_aws.py
+   ```
+
+   The script checks the credentials, region, role, SageMaker access and default bucket without printing any secret. Outside Studio, `sagemaker.get_execution_role()` does not work, so notebooks read the role from `BANKPULSE_ROLE_ARN`.
+4. Lab credentials expire when the session ends. Paste fresh values next time, and click **End Lab** when finished.
 - **Cost:** delete the endpoint, endpoint configuration and model when finished, because real-time endpoints are billed every hour they run.
 
 ## Evaluation approach
