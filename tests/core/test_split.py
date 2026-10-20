@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from bankpulse_core.split import check_no_overlap, split_summary, time_split
+from bankpulse_core.split import check_no_overlap, split_summary, time_split, window_split
 
 FRACTIONS = {'train': 0.7, 'validation': 0.15, 'test': 0.15}
 
@@ -84,3 +84,24 @@ def test_summary_positive_rate():
 def test_summary_with_encoded_labels():
     frame = pd.DataFrame({'y': [1, 0, 0, 1]})
     assert split_summary({'all': frame}, target='y', positive=1) == {'all': {'rows': 4, 'positive_rate': 0.5}}
+
+
+# ---- window_split ---------------------------------------------------------------------------
+
+def test_window_takes_newest_batches_and_drops_old_ones():
+    frame = make_frame(10)
+    splits = window_split(frame, [2, 2, 2, 2, 2], train_batches=2, validation_batches=1, test_batches=1)
+    assert splits['train']['row_id'].tolist() == [2, 3, 4, 5]          # batch 1 (rows 0-1) aged out
+    assert splits['validation']['row_id'].tolist() == [6, 7]
+    assert splits['test']['row_id'].tolist() == [8, 9]
+    check_no_overlap(splits)
+
+
+def test_window_needs_enough_batches():
+    with pytest.raises(ValueError, match='needs 4 batches, only 3'):
+        window_split(make_frame(6), [2, 2, 2], train_batches=2, validation_batches=1, test_batches=1)
+
+
+def test_window_sizes_must_match_the_data():
+    with pytest.raises(ValueError, match='add up to 5 rows, but the data has 6'):
+        window_split(make_frame(6), [2, 3], train_batches=1, validation_batches=1, test_batches=1)

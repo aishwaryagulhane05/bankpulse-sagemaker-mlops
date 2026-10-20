@@ -71,7 +71,7 @@ def read_bytes(path: PathLike) -> bytes:
     return Path(path).read_bytes()
 
 
-def _write_bytes(data: bytes, path: PathLike) -> Union[str, Path]:
+def write_bytes(data: bytes, path: PathLike) -> Union[str, Path]:
     """Write bytes locally (creating the folder) or to S3; returns the path written."""
     if is_s3(path):
         bucket, key = split_s3_uri(path)
@@ -94,7 +94,7 @@ def write_csv(df: pd.DataFrame, path: PathLike, header: bool = True, sep: str = 
     """Write df without its index; header=False gives the XGBoost training format."""
     # lineterminator='\n': pandas otherwise uses "\r\n" on Windows, which changes the hash.
     text = df.to_csv(sep=sep, header=header, index=False, lineterminator='\n')
-    return _write_bytes(text.encode('utf-8'), path)
+    return write_bytes(text.encode('utf-8'), path)
 
 
 def read_json(path: PathLike) -> Any:
@@ -105,7 +105,7 @@ def write_json(obj: Any, path: PathLike) -> Union[str, Path]:
     """Write JSON-safe data, indented for readable diffs; raises TypeError otherwise."""
     # Serialise first, so a non-JSON value fails before an empty file is created.
     text = json.dumps(obj, indent=2, ensure_ascii=False) + '\n'
-    return _write_bytes(text.encode('utf-8'), path)
+    return write_bytes(text.encode('utf-8'), path)
 
 
 # ---- hashes, uploads and listings -------------------------------------------------------------

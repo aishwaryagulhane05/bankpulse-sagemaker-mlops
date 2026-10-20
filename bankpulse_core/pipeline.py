@@ -29,10 +29,11 @@ import pandas as pd
 
 from bankpulse_core.contract import check_rules, check_schema, drop_forbidden, load_contract
 from bankpulse_core.feature_base import Feature, check_inputs, get_feature, resolve
+from bankpulse_core.ingest import load_batches
 from bankpulse_core.io import read_csv, write_csv, write_json
 from bankpulse_core.lineage import start_run
 from bankpulse_core.log_utils import log_stage, setup_logging
-from bankpulse_core.split import check_no_overlap, split_summary, time_split
+from bankpulse_core.split import check_no_overlap, split_summary, time_split, window_split
 
 logger = logging.getLogger(__name__)
 
@@ -146,10 +147,17 @@ def run(config: Mapping) -> Dict:
     lineage = start_run(config)
     out_dir = Path(config['output']['processed_dir'])
 
-    # Step 1: read the raw file and record its hash, so outputs can be traced back to it.
+    # Step 1: read the raw data and record its hash, so outputs can be traced back to it.
+    # With data.batches, the data is every accepted monthly batch in arrival order (ingest.py).
     with log_stage('read raw data'):
-        raw = read_csv(config['data']['path'], sep=config['data']['separator'])
-        lineage.record_file('inputs', 'raw_data', config['data']['path'])
+        batch_sizes = None
+        if config['data'].get('batches'):
+            raw, batch_sizes = load_batches(config['data']['batches'], separator=config['data']['separator'])
+            lineage.record_file('inputs', 'batch_manifest', config['data']['batches'].rstrip('/') + '/manifest.json')
+            lineage.record('batches', {'count': len(batch_sizes), 'rows': batch_sizes})
+        else:
+            raw = read_csv(config['data']['path'], sep=config['data']['separator'])
+            lineage.record_file('inputs', 'raw_data', config['data']['path'])
 
     # Step 2: the data must match the contract; then leakage columns are removed.
     with log_stage('check contract'):
@@ -158,9 +166,13 @@ def run(config: Mapping) -> Dict:
         check_rules(raw, contract)
         data = drop_forbidden(raw, contract)
 
-    # Step 3: time-ordered split, with no row in two splits.
+    # Step 3: time-ordered split, with no row in two splits: either fractions of the whole file,
+    # or a rolling window over the newest batches (older batches age out).
     with log_stage('split'):
-        splits = time_split(data, config['split'])
+        if config.get('window') and batch_sizes:
+            splits = window_split(data, batch_sizes, **config['window'])
+        else:
+            splits = time_split(data, config['split'])
         check_no_overlap(splits)
         lineage.record('split_summary', split_summary(splits, contract.target, contract.positive_label))
 

@@ -85,3 +85,14 @@ def test_project_config_loads_and_points_at_real_files():
     assert Path(config['data']['path']).is_file()
     assert Path(config['contract']).is_file()
     assert len(config['features']) == 9          # economic indicators registered but not enabled
+
+
+def test_window_must_use_positive_whole_batches():
+    validate_config({**VALID, 'window': {'train_batches': 12, 'validation_batches': 2, 'test_batches': 2}})
+    with pytest.raises(ConfigError, match='window'):
+        validate_config({**VALID, 'window': {'train_batches': 12, 'validation_batches': 0, 'test_batches': 2}})
+
+
+def test_optional_batches_path_is_resolved(tmp_path):
+    config = load_config(write_config(tmp_path, with_change('data', 'batches', 'data/batches')))
+    assert config['data']['batches'] == str(tmp_path / 'data/batches')

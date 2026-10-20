@@ -101,3 +101,28 @@ def test_encoding_raw_test_records_matches_batch_input_file(first_run):
     with open(first_run['outputs']['test_features'], encoding='utf-8') as handle:
         batch_rows = handle.read().splitlines()[-200:]
     assert to_csv_payload(encode_records(newest.to_dict('records'), schema)).splitlines() == batch_rows
+
+
+def test_rolling_window_over_monthly_batches(tmp_path):
+    # The same pipeline, fed month by month: train on 12 months, validate on 2, hold out the newest 2.
+    from bankpulse_core.contract import load_contract
+    from bankpulse_core.ingest import ingest_file, month_batches
+
+    contract = load_contract(CONFIG['contract'])
+    raw = pd.read_csv(CONFIG['data']['path'], sep=';')
+    incoming = tmp_path / 'incoming'
+    incoming.mkdir()
+    for number, month in enumerate(month_batches(raw), start=1):
+        path = incoming / f'month-{number:02d}.csv'
+        month.to_csv(path, sep=';', index=False)
+        assert ingest_file(path, contract, tmp_path / 'batches')['status'] == 'accepted'
+
+    config = config_writing_to(tmp_path / 'out')
+    config['data']['batches'] = str(tmp_path / 'batches')
+    config['window'] = {'train_batches': 12, 'validation_batches': 2, 'test_batches': 2}
+    result = run(config)
+    summary = result['split_summary']
+    # Months 11-22 train, 23-24 validate, 25-26 (Oct, Nov 2010) are held out.
+    assert summary['train']['rows'] == 4096
+    assert summary['validation']['rows'] == 536 and summary['test']['rows'] == 332
+    assert read_json(result['run_metadata'])['batches']['count'] == 26
