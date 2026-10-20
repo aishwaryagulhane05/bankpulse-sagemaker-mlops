@@ -1,4 +1,31 @@
 # Data preparation config: data source, split fractions, and which features (and versions) are enabled
+#
+# Local paths are relative to the repository root, so the same file works from the repo
+# root, from notebooks/ and from tests. S3 locations are added in Phase 4 (BP-403).
+# No credentials, account IDs or secrets belong in this file.
+
+# Raw input file and how to read it.
+data:
+  path: data/raw/bank-additional-full.csv
+  separator: ";"
+
+# Data contract the input must satisfy (columns, types, rules, target, leakage).
+contract: config/contract.yaml
+
+# Time-ordered split: rows keep their date order, oldest rows train the model.
+# Fractions must add up to 1.
+split:
+  train: 0.70
+  validation: 0.15
+  test: 0.15
+
+# Where the pipeline writes its outputs.
+output:
+  processed_dir: data/processed
+  reports_dir: reports
+
+# Log level for setup_logging(): DEBUG, INFO, WARNING or ERROR.
+log_level: INFO
 
 # Enabled features, as name: version, in output column order. Each pair must be registered
 # by a module in features/. To upgrade a feature, change its version here (e.g. v1 -> v2);
