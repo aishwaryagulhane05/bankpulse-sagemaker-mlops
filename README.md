@@ -5,6 +5,7 @@
 [![XGBoost](https://img.shields.io/badge/model-XGBoost%201.7-green)](#model-development)
 [![Tests](https://img.shields.io/badge/tests-266%20passing-brightgreen)](#testing-and-quality)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+[![Built on AWS Academy Learner Lab](https://img.shields.io/badge/built%20on-AWS%20Academy%20Learner%20Lab-232F3E)](#aws-environment)
 
 An end-to-end MLOps system that predicts whether a bank customer will open a term deposit **before** the sales call, so a campaign team can call the most promising customers first.
 
@@ -14,7 +15,9 @@ An end-to-end MLOps system that predicts whether a bank customer will open a ter
 
 **[Demo video](docs/video-demo/bankpulse_vedio_demo.webm)** · **[Screenshots](docs/screenshots/README.md)** · **[Executed notebooks](notebooks/executed/)** · **[Retraining design](docs/retraining.md)**
 
-> **Status:** v1.0. Every stage ran end to end in an AWS Academy Learner Lab (`us-east-1`). Lab accounts are temporary, so the account IDs and ARNs in the screenshots and executed notebooks no longer exist.
+> **This project was created and run on the AWS Academy Learner Lab.** Every AWS resource was created in the lab account (`us-east-1`), running as the lab's `LabRole`: S3, SageMaker training, Batch Transform, Model Registry, Model Card, endpoint, Pipelines, CloudWatch and EventBridge. Lab accounts are temporary, so the account IDs and ARNs in the screenshots and executed notebooks no longer exist. See [AWS environment](#aws-environment).
+>
+> **Status:** v1.0. Every stage ran end to end in the lab.
 
 ---
 
@@ -23,6 +26,7 @@ An end-to-end MLOps system that predicts whether a bank customer will open a ter
 - [Overview](#overview)
 - [Key results](#key-results)
 - [Architecture](#architecture)
+- [AWS environment](#aws-environment)
 - [Getting started](#getting-started)
 - [Configuration](#configuration)
 - [Project structure](#project-structure)
@@ -93,6 +97,21 @@ Both models use the same 68 inputs. The threshold is chosen on validation, and t
 | Interface | Streamlit results UI (live, read-only AWS status; scoring with the endpoint) |
 
 The framework (`bankpulse_core/`) never imports the business features (`features/`). Which features run, and in which version, is set in `config/data_prep.yaml`, so adding or upgrading a feature needs no pipeline change.
+
+## AWS environment
+
+This project was built and run on the **AWS Academy Learner Lab**, a time-limited AWS sandbox for coursework. That shaped several design choices:
+
+| Lab characteristic | How the project handles it |
+|---|---|
+| A fixed IAM role, `LabRole`; new roles can't be created | Every SageMaker job, endpoint and pipeline, and every EventBridge rule, runs as `LabRole`, picked automatically by `bankpulse_core/aws.py` |
+| Temporary credentials that change every session (about 4 hours) | Credentials are pasted into `~/.aws/credentials` each session, never into the code. The UI re-reads them every 5 minutes |
+| Resources keep running, and billing, after a session ends | The notebook 05 clean-up cell deletes the endpoint and disables the retraining triggers |
+| Some managed services are unavailable to new accounts | SageMaker Clarify and Model Monitor schedules were rejected ("maintenance mode"), so bias and drift checks use the project's own monitoring code |
+| A limited budget | Every job is `ml.m5.large` with a 1-hour limit; Batch Transform jobs run in parallel; the pipeline's Evaluate step scores models directly, without extra transform jobs |
+| Region `us-east-1`; the account is deleted when the course ends | Account IDs and ARNs appear in the screenshots and executed notebooks only; nothing account-specific is committed as configuration |
+
+The code itself is not lab-specific. In any AWS account with SageMaker, set `BANKPULSE_ROLE_ARN` to a SageMaker execution role and use your own credentials profile.
 
 ## Getting started
 
@@ -501,4 +520,4 @@ This project is released under the [MIT License](LICENSE).
 
 **Dataset:** Moro, S., Cortez, P., & Rita, P. (2014). A data-driven approach to predict the success of bank telemarketing. *Decision Support Systems, 62*, 22–31. https://doi.org/10.1016/j.dss.2014.03.001. The dataset is available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/222/bank+marketing).
 
-**Acknowledgements:** built and run on an AWS Academy Learner Lab.
+**Acknowledgements:** this project was created and run on the AWS Academy Learner Lab, which provided the AWS account, `LabRole` and SageMaker resources.
