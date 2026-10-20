@@ -22,8 +22,12 @@ REQUIRED = (
     ('feature_package', None), ('features', None),
 )
 
-# Path settings that load_config() resolves against the repository root.
-PATH_KEYS = (('data', 'path'), ('contract', None), ('output', 'processed_dir'), ('output', 'reports_dir'))
+# Path settings that load_config() resolves against the repository root (optional ones may be absent).
+PATH_KEYS = (('data', 'path'), ('data', 'batches'), ('contract', None), ('output', 'processed_dir'),
+             ('output', 'reports_dir'))
+
+# Optional rolling window over monthly batches: how many of the newest batches go to each split.
+WINDOW_KEYS = ('train_batches', 'validation_batches', 'test_batches')
 
 LOG_LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR')
 _VERSION_PATTERN = re.compile(r'^v\d+$')
@@ -59,7 +63,14 @@ def validate_config(config: Mapping) -> None:
     if bad:
         raise ConfigError(f'features: versions must look like "v1", got {bad}')
 
-    # Step 4: the log level is optional, but must be one logging understands.
+    # Step 4: an optional rolling window needs a whole positive number of batches per split.
+    window = config.get('window')
+    if window is not None:
+        bad = {k: window.get(k) for k in WINDOW_KEYS if not (isinstance(window.get(k), int) and window.get(k) > 0)}
+        if bad:
+            raise ConfigError(f'window: {", ".join(WINDOW_KEYS)} must be positive integers, got {bad}')
+
+    # Step 5: the log level is optional, but must be one logging understands.
     level = config.get('log_level', 'INFO')
     if level not in LOG_LEVELS:
         raise ConfigError(f'log_level must be one of {LOG_LEVELS}, got {level!r}')
@@ -82,7 +93,10 @@ def load_config(path: Union[str, Path]) -> Dict:
     # Step 3: make local paths absolute against the repository root.
     root = path.parent.parent
     for section, key in PATH_KEYS:
-        value = str(_get(config, section, key))
+        value = _get(config, section, key)
+        if value is None:                      # optional setting not used in this config
+            continue
+        value = str(value)
         if not value.startswith('s3://'):
             value = str(root / value)
         if key is None:

@@ -12,6 +12,12 @@ data:
 # Data contract the input must satisfy (columns, types, rules, target, leakage).
 contract: config/contract.yaml
 
+# Continuous training (docs/retraining.md): instead of data.path, read every accepted monthly
+# batch from data.batches (written by bankpulse_core/ingest.py) and split with a rolling window
+# of the newest batches; older months age out. The retraining pipeline sets these, e.g.:
+#   data:   {batches: s3://<bucket>/bank-campaign-mlops/raw/batches, ...}
+#   window: {train_batches: 12, validation_batches: 2, test_batches: 2}
+
 # Time-ordered split: rows keep their date order, oldest rows train the model.
 # Fractions must add up to 1.
 split:

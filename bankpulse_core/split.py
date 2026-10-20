@@ -6,7 +6,7 @@ from "future" rows and report scores it can't achieve in production, so every sp
 here keeps the original row order: oldest rows train the model, newest rows test it.
 """
 
-from typing import Dict, Mapping, Union
+from typing import Dict, Mapping, Sequence, Union
 
 import pandas as pd
 
@@ -123,3 +123,37 @@ def split_summary(splits: Mapping[str, pd.DataFrame], target: str,
         # Step 2: round for readability; the full precision isn't meaningful in a report.
         summary[name] = {'rows': len(part), 'positive_rate': round(rate, 4)}
     return summary
+
+
+def window_split(df: pd.DataFrame, batch_sizes: Sequence[int], train_batches: int, validation_batches: int,
+                 test_batches: int) -> Dict[str, pd.DataFrame]:
+    """
+    Rolling-window split over consecutive batches (e.g. months), newest last.
+
+    The newest test_batches go to test, the validation_batches before them to validation,
+    and the train_batches before those to train. Older batches are left out, so the model
+    learns from recent conditions instead of the whole history.
+
+    Args:
+        df: Rows of every batch, concatenated in arrival order.
+        batch_sizes: Row count of each batch, in the same order (sum must equal len(df)).
+    """
+    # Step 1: the batch sizes must describe df exactly, or the boundaries would be wrong.
+    if sum(batch_sizes) != len(df):
+        raise ValueError(f'batch sizes add up to {sum(batch_sizes)} rows, but the data has {len(df)}')
+    needed = train_batches + validation_batches + test_batches
+    if len(batch_sizes) < needed:
+        raise ValueError(f'the window needs {needed} batches, only {len(batch_sizes)} are available')
+
+    # Step 2: row offsets of the window boundaries, counted back from the newest batch.
+    ends = [0]
+    for size in batch_sizes:
+        ends.append(ends[-1] + size)
+    test_start = ends[len(batch_sizes) - test_batches]
+    validation_start = ends[len(batch_sizes) - test_batches - validation_batches]
+    train_start = ends[len(batch_sizes) - needed]
+
+    # Step 3: consecutive positional slices, like time_split.
+    return {'train': df.iloc[train_start:validation_start],
+            'validation': df.iloc[validation_start:test_start],
+            'test': df.iloc[test_start:]}
