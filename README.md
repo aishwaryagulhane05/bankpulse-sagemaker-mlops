@@ -191,7 +191,7 @@ Pick a section in the sidebar:
 
 ## Screenshots
 
-Executed copies of the notebooks, with all outputs, are saved locally in `notebooks/executed/`, which is git-ignored because outputs show the account ID. Console screenshots for each stage are listed in the "Screenshots" checklist of the matching GitHub issue (#34–#55):
+Executed copies of the notebooks, with every output and chart from the lab run, are in [`notebooks/executed/`](notebooks/executed/). They show the temporary AWS Academy lab account, which no longer exists after the lab ends. The notebooks in `notebooks/` are the clean versions to run. Console screenshots for each stage are listed in the "Screenshots" checklist of the matching GitHub issue (#34–#55):
 
 | Stage | Where |
 |---|---|
@@ -211,7 +211,7 @@ bankpulse-sagemaker-mlops/
 ├── features/            FEATURES: contact_history, campaign, economic, client_profile
 ├── config/              data_prep.yaml (data, split, S3 prefix, enabled features), contract.yaml
 ├── data/raw/            dataset and column descriptions (data/processed/ is generated, git-ignored)
-├── notebooks/           01-05, committed without outputs (executed/ copies stay local)
+├── notebooks/           01-05 without outputs; executed/ holds the same notebooks with the lab run's outputs
 ├── reports/             quality, baseline, tuning, XGBoost, comparison, monitoring, managed-monitoring results
 ├── scripts/             check_aws, quality_report, baseline, tune_xgboost
 ├── ui/                  Streamlit results UI: app, tracking (read-only AWS status), scoring, content
