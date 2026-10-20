@@ -1,14 +1,14 @@
 """Tests for the features enabled in config/data_prep.yaml, checked against config/contract.yaml."""
 
-from pathlib import Path
-
 import json
+from pathlib import Path
 
 import pandas as pd
 import pytest
 import yaml
 
 import features  # noqa: F401  (registers every feature)
+from bankpulse_core.config import load_config
 from bankpulse_core.feature_base import Feature, FeatureError, check_inputs, resolve
 
 CONFIG_DIR = Path(__file__).resolve().parents[2] / 'config'
@@ -19,7 +19,7 @@ def load_yaml(name):
         return yaml.safe_load(handle)
 
 
-ENABLED = load_yaml('data_prep.yaml')['features']
+ENABLED = load_config(CONFIG_DIR / 'data_prep.yaml')['features']
 CONTRACT = load_yaml('contract.yaml')
 # Columns features may read: every contract column except the target and forbidden ones.
 FORBIDDEN = CONTRACT['forbidden_columns']
