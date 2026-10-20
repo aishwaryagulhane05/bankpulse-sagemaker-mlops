@@ -231,15 +231,60 @@ Pick a section in the sidebar:
 
 ## Screenshots
 
-Executed copies of the notebooks, with every output and chart from the lab run, are in [`notebooks/executed/`](notebooks/executed/). They show the temporary AWS Academy lab account, which no longer exists after the lab ends. The notebooks in `notebooks/` are the clean versions to run. Console screenshots for each stage are listed in the "Screenshots" checklist of the matching GitHub issue (#34–#55):
+From the run in the AWS Academy lab. Click a thumbnail for the full image. All captions are in [docs/screenshots](docs/screenshots/README.md), and the executed notebooks with every output are in [`notebooks/executed/`](notebooks/executed/). A video walkthrough goes in [docs/video-demo](docs/video-demo/README.md).
 
-| Stage | Where |
-|---|---|
-| Data lake | S3 → `sagemaker-us-east-1-<account>` → `bank-campaign-mlops/` |
-| Training and Batch Transform | SageMaker → Training jobs; Batch transform jobs |
-| Registry and Model Card | SageMaker Studio → Models → Registered models; SageMaker → Governance → Model cards |
-| Endpoint and Data Capture | SageMaker → Endpoints; S3 `inference-capture/` |
-| Monitoring | CloudWatch → Dashboards `bankpulse-model-monitoring`, Alarms, Metrics `BankPulse/ModelMonitoring` |
+**Notebook 01: S3 data lake**
+
+<table>
+<tr><td width="50%"><a href="docs/screenshots/01-sagemaker-session-role-bucket.png"><img src="docs/screenshots/01-sagemaker-session-role-bucket.png" width="100%" alt="01-sagemaker-session-role-bucket.png"></a><br><sub>Session, LabRole and bucket</sub></td><td width="50%"><a href="docs/screenshots/01-s3-data-lake-folders.png"><img src="docs/screenshots/01-s3-data-lake-folders.png" width="100%" alt="01-s3-data-lake-folders.png"></a><br><sub>S3 data lake folders</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/01-s3-data-lake-folders-continued.png"><img src="docs/screenshots/01-s3-data-lake-folders-continued.png" width="100%" alt="01-s3-data-lake-folders-continued.png"></a><br><sub>S3 data lake folders (continued)</sub></td><td width="50%"><a href="docs/screenshots/01-s3-labels.png"><img src="docs/screenshots/01-s3-labels.png" width="100%" alt="01-s3-labels.png"></a><br><sub>Labels kept apart from features</sub></td></tr>
+</table>
+
+**Notebook 02: training job and Batch Transform**
+
+<table>
+<tr><td width="50%"><a href="docs/screenshots/02-training-job-completed.png"><img src="docs/screenshots/02-training-job-completed.png" width="100%" alt="02-training-job-completed.png"></a><br><sub>Training job Completed</sub></td><td width="50%"><a href="docs/screenshots/02-training-job-metrics.png"><img src="docs/screenshots/02-training-job-metrics.png" width="100%" alt="02-training-job-metrics.png"></a><br><sub>Training metrics (PR-AUC)</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/02-training-job-input-channels.png"><img src="docs/screenshots/02-training-job-input-channels.png" width="100%" alt="02-training-job-input-channels.png"></a><br><sub>Train and validation channels</sub></td><td width="50%"><a href="docs/screenshots/02-training-job-output-artifact.png"><img src="docs/screenshots/02-training-job-output-artifact.png" width="100%" alt="02-training-job-output-artifact.png"></a><br><sub>model.tar.gz and LabRole</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/02-s3-model-artifacts.png"><img src="docs/screenshots/02-s3-model-artifacts.png" width="100%" alt="02-s3-model-artifacts.png"></a><br><sub>Model artifacts in S3</sub></td><td width="50%"><a href="docs/screenshots/02-batch-transform-jobs.png"><img src="docs/screenshots/02-batch-transform-jobs.png" width="100%" alt="02-batch-transform-jobs.png"></a><br><sub>Batch Transform jobs Completed</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/02-s3-batch-predictions.png"><img src="docs/screenshots/02-s3-batch-predictions.png" width="100%" alt="02-s3-batch-predictions.png"></a><br><sub>Batch predictions (.out)</sub></td></tr>
+</table>
+
+**Notebook 03: Model Registry and Model Card**
+
+<table>
+<tr><td width="50%"><a href="docs/screenshots/03-model-registry-group.png"><img src="docs/screenshots/03-model-registry-group.png" width="100%" alt="03-model-registry-group.png"></a><br><sub>Model Registry group</sub></td><td width="50%"><a href="docs/screenshots/03-model-registry-versions.png"><img src="docs/screenshots/03-model-registry-versions.png" width="100%" alt="03-model-registry-versions.png"></a><br><sub>Versions: v1 Approved, v2-v4 Pending</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/03-model-card-overview.png"><img src="docs/screenshots/03-model-card-overview.png" width="100%" alt="03-model-card-overview.png"></a><br><sub>Model Card overview</sub></td><td width="50%"><a href="docs/screenshots/03-model-cards-list.png"><img src="docs/screenshots/03-model-cards-list.png" width="100%" alt="03-model-cards-list.png"></a><br><sub>Model Card, risk Medium</sub></td></tr>
+</table>
+
+**Notebook 04: real-time endpoint and Data Capture**
+
+<table>
+<tr><td width="50%"><a href="docs/screenshots/04-sagemaker-model-from-package.png"><img src="docs/screenshots/04-sagemaker-model-from-package.png" width="100%" alt="04-sagemaker-model-from-package.png"></a><br><sub>Model from package version 1</sub></td><td width="50%"><a href="docs/screenshots/04-endpoints-inservice.png"><img src="docs/screenshots/04-endpoints-inservice.png" width="100%" alt="04-endpoints-inservice.png"></a><br><sub>Endpoint InService</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/04-endpoint-summary.png"><img src="docs/screenshots/04-endpoint-summary.png" width="100%" alt="04-endpoint-summary.png"></a><br><sub>Endpoint summary</sub></td><td width="50%"><a href="docs/screenshots/04-endpoint-config-data-capture.png"><img src="docs/screenshots/04-endpoint-config-data-capture.png" width="100%" alt="04-endpoint-config-data-capture.png"></a><br><sub>Data Capture active, 100%</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/04-scored-customers.png"><img src="docs/screenshots/04-scored-customers.png" width="100%" alt="04-scored-customers.png"></a><br><sub>Scored customers</sub></td><td width="50%"><a href="docs/screenshots/04-s3-inference-capture.png"><img src="docs/screenshots/04-s3-inference-capture.png" width="100%" alt="04-s3-inference-capture.png"></a><br><sub>inference-capture/ in S3</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/04-capture-jsonl-files.png"><img src="docs/screenshots/04-capture-jsonl-files.png" width="100%" alt="04-capture-jsonl-files.png"></a><br><sub>Captured requests (.jsonl)</sub></td></tr>
+</table>
+
+**Notebook 05: monitoring and CloudWatch**
+
+<table>
+<tr><td width="50%"><a href="docs/screenshots/05-s3-monitoring-report.png"><img src="docs/screenshots/05-s3-monitoring-report.png" width="100%" alt="05-s3-monitoring-report.png"></a><br><sub>Monitoring report in S3</sub></td><td width="50%"><a href="docs/screenshots/05-cloudwatch-alarms-overview.png"><img src="docs/screenshots/05-cloudwatch-alarms-overview.png" width="100%" alt="05-cloudwatch-alarms-overview.png"></a><br><sub>CloudWatch alarms overview</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/05-cloudwatch-drift-alarm.png"><img src="docs/screenshots/05-cloudwatch-drift-alarm.png" width="100%" alt="05-cloudwatch-drift-alarm.png"></a><br><sub>Drift alarm: PSI 3.43 > 0.2</sub></td></tr>
+</table>
+
+**Notebook 06: continuous training**
+
+<table>
+<tr><td width="50%"><a href="docs/screenshots/06-eventbridge-retrain-rules.png"><img src="docs/screenshots/06-eventbridge-retrain-rules.png" width="100%" alt="06-eventbridge-retrain-rules.png"></a><br><sub>EventBridge retraining rules</sub></td><td width="50%"><a href="docs/screenshots/06-registry-version-2-lineage.png"><img src="docs/screenshots/06-registry-version-2-lineage.png" width="100%" alt="06-registry-version-2-lineage.png"></a><br><sub>Version 2 lineage</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/06-registry-version-5-metrics.png"><img src="docs/screenshots/06-registry-version-5-metrics.png" width="100%" alt="06-registry-version-5-metrics.png"></a><br><sub>Version 5 metrics</sub></td><td width="50%"><a href="docs/screenshots/06-registry-version-5-approved.png"><img src="docs/screenshots/06-registry-version-5-approved.png" width="100%" alt="06-registry-version-5-approved.png"></a><br><sub>Version 5 approved</sub></td></tr>
+<tr><td width="50%"><a href="docs/screenshots/06-registry-version-5-lineage.png"><img src="docs/screenshots/06-registry-version-5-lineage.png" width="100%" alt="06-registry-version-5-lineage.png"></a><br><sub>Version 5 lineage</sub></td><td width="50%"><a href="docs/screenshots/06-endpoint-unchanged-after-retraining.png"><img src="docs/screenshots/06-endpoint-unchanged-after-retraining.png" width="100%" alt="06-endpoint-unchanged-after-retraining.png"></a><br><sub>Endpoint unchanged after retraining</sub></td></tr>
+</table>
+
+**Results UI**
+
+<table>
+<tr><td width="50%"><a href="docs/screenshots/ui-overview.png"><img src="docs/screenshots/ui-overview.png" width="100%" alt="ui-overview.png"></a><br><sub>Results UI overview</sub></td></tr>
+</table>
 
 ## Repository structure
 
