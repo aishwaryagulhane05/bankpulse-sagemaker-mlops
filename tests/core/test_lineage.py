@@ -27,7 +27,7 @@ def test_run_metadata_holds_raw_hash_config_commit_and_feature_versions(tmp_path
     assert saved['config'] == config
     assert re.fullmatch(r'[0-9a-f]{40}', saved['code']['git_commit'])
     assert isinstance(saved['code']['uncommitted_changes'], bool)
-    assert saved['features']['capped_campaign'] == 'v1' and len(saved['features']) == 12
+    assert saved['features']['capped_campaign'] == 'v1' and len(saved['features']) == 9
 
 
 def test_save_adds_finish_time_and_environment(tmp_path):

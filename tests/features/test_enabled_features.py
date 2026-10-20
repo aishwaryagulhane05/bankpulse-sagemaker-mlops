@@ -17,9 +17,9 @@ CONTRACT = load_contract(CONFIG['contract'])
 ALLOWED, FORBIDDEN = CONTRACT.allowed_columns, CONTRACT.forbidden_columns
 
 
-def test_config_resolves_to_twelve_unfitted_features_in_order():
+def test_config_resolves_to_nine_unfitted_features_in_order():
     resolved = resolve(ENABLED)
-    assert len(resolved) == 12
+    assert len(resolved) == 9
     assert all(isinstance(feature, Feature) and not feature.fitted for feature in resolved)
     assert [feature.name for feature in resolved] == list(ENABLED)
 

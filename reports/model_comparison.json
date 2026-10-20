@@ -1,0 +1,39 @@
+{
+  "pr_auc": {
+    "candidate": 0.4673,
+    "baseline": 0.4712,
+    "difference": -0.0039,
+    "better": "baseline"
+  },
+  "roc_auc": {
+    "candidate": 0.6291,
+    "baseline": 0.6198,
+    "difference": 0.0093,
+    "better": "candidate"
+  },
+  "precision": {
+    "candidate": 0.4733,
+    "baseline": 0.481,
+    "difference": -0.0077,
+    "better": "baseline"
+  },
+  "recall": {
+    "candidate": 0.3022,
+    "baseline": 0.2243,
+    "difference": 0.0779,
+    "better": "candidate"
+  },
+  "f1": {
+    "candidate": 0.3689,
+    "baseline": 0.306,
+    "difference": 0.0629,
+    "better": "candidate"
+  },
+  "lift_top_decile": {
+    "candidate": 1.239,
+    "baseline": 1.193,
+    "difference": 0.046,
+    "better": "candidate"
+  },
+  "candidate_beats_baseline": false
+}
