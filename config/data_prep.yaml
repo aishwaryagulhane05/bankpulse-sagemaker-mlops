@@ -24,6 +24,13 @@ output:
   processed_dir: data/processed
   reports_dir: reports
 
+# S3 data lake (Phase 4). Every object lives under s3://<bucket>/<prefix>/. The bucket is
+# not set here: it is the SageMaker default bucket, from sagemaker.Session().default_bucket().
+# The region and credentials come from the environment (LabRole in Studio, AWS_PROFILE on
+# a laptop), never from this file.
+s3:
+  prefix: bank-campaign-mlops
+
 # Log level for setup_logging(): DEBUG, INFO, WARNING or ERROR.
 log_level: INFO
 
