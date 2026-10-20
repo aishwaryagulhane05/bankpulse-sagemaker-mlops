@@ -27,6 +27,10 @@ output:
 # Log level for setup_logging(): DEBUG, INFO, WARNING or ERROR.
 log_level: INFO
 
+# Python package whose import registers the features below. The framework never imports
+# it directly; pipeline.run() imports it by this name.
+feature_package: features
+
 # Enabled features, as name: version, in output column order. Each pair must be registered
 # by a module in features/. To upgrade a feature, change its version here (e.g. v1 -> v2);
 # the pipeline code doesn't change.

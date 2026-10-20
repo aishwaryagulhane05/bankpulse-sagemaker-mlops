@@ -19,7 +19,7 @@ REQUIRED = (
     ('data', 'path'), ('data', 'separator'),
     ('contract', None), ('split', None),
     ('output', 'processed_dir'), ('output', 'reports_dir'),
-    ('features', None),
+    ('feature_package', None), ('features', None),
 )
 
 # Path settings that load_config() resolves against the repository root.
