@@ -1,0 +1,138 @@
+{
+  "generated_at": "2026-10-20T19:55:16.107237+00:00",
+  "records": 200,
+  "metrics": {
+    "max_feature_psi": 3.4269,
+    "prediction_psi": 2.9503,
+    "positive_rate": 0.41,
+    "subgroup_min_max_ratio": 0.2982
+  },
+  "data_drift": {
+    "max_psi": 3.4269,
+    "drifted_columns": [
+      "previous_contacts",
+      "previously_contacted",
+      "contact_timing__month__may",
+      "categorical_profile__default__no",
+      "categorical_profile__default__unknown",
+      "prior_success",
+      "contact_timing__month__oct",
+      "contact_timing__month__jul",
+      "contact_timing__month__aug",
+      "contact_timing__month__nov",
+      "contact_timing__month__jun",
+      "contact_timing__contact__cellular",
+      "contact_timing__contact__telephone",
+      "age_band__60plus",
+      "categorical_profile__job__student",
+      "age",
+      "categorical_profile__job__blue-collar"
+    ],
+    "psi": {
+      "previous_contacts": 3.4269,
+      "previously_contacted": 2.4217,
+      "contact_timing__month__may": 2.2104,
+      "categorical_profile__default__no": 2.059,
+      "categorical_profile__default__unknown": 2.0581,
+      "prior_success": 2.0342,
+      "contact_timing__month__oct": 1.9625,
+      "contact_timing__month__jul": 1.8571,
+      "contact_timing__month__aug": 1.3797,
+      "contact_timing__month__nov": 1.2954,
+      "contact_timing__month__jun": 1.1355,
+      "contact_timing__contact__cellular": 0.7384,
+      "contact_timing__contact__telephone": 0.7384,
+      "age_band__60plus": 0.426,
+      "categorical_profile__job__student": 0.3325,
+      "age": 0.2995,
+      "categorical_profile__job__blue-collar": 0.2467,
+      "campaign_intensity": 0.1738,
+      "capped_campaign": 0.1738,
+      "contact_timing__month__apr": 0.1701,
+      "categorical_profile__education__basic.9y": 0.1591,
+      "age_band__45_59": 0.1125,
+      "categorical_profile__marital__single": 0.0853,
+      "categorical_profile__marital__married": 0.0761,
+      "categorical_profile__job__retired": 0.0682,
+      "age_band__lt30": 0.067,
+      "categorical_profile__education__basic.6y": 0.0588,
+      "categorical_profile__housing__no": 0.0481,
+      "categorical_profile__housing__yes": 0.0466,
+      "contact_timing__month__mar": 0.0445,
+      "categorical_profile__job__entrepreneur": 0.0389,
+      "categorical_profile__education__university.degree": 0.037,
+      "categorical_profile__job__self-employed": 0.0344,
+      "age_band__30_44": 0.0339,
+      "categorical_profile__job__admin.": 0.0303,
+      "categorical_profile__education__basic.4y": 0.0283,
+      "contact_timing__day_of_week__mon": 0.0208,
+      "categorical_profile__education__high.school": 0.0197,
+      "categorical_profile__loan__yes": 0.0194,
+      "categorical_profile__loan__no": 0.016,
+      "categorical_profile__job__services": 0.0148,
+      "contact_timing__day_of_week__thu": 0.011,
+      "categorical_profile__job__management": 0.009,
+      "categorical_profile__job__unemployed": 0.0084,
+      "categorical_profile__education__unknown": 0.0076,
+      "categorical_profile__job__housemaid": 0.0072,
+      "categorical_profile__education__professional.course": 0.0065,
+      "categorical_profile__marital__unknown": 0.0045,
+      "contact_timing__day_of_week__fri": 0.0022,
+      "contact_timing__day_of_week__wed": 0.002,
+      "contact_timing__day_of_week__tue": 0.0016,
+      "categorical_profile__job__technician": 0.0008,
+      "categorical_profile__education__illiterate": 0.0006,
+      "contact_timing__month__dec": 0.0003,
+      "categorical_profile__job__unknown": 0.0002,
+      "categorical_profile__marital__divorced": 0.0001,
+      "categorical_profile__job__other": 0.0,
+      "categorical_profile__marital__other": 0.0,
+      "categorical_profile__education__other": 0.0,
+      "categorical_profile__default__yes": 0.0,
+      "categorical_profile__default__other": 0.0,
+      "categorical_profile__housing__unknown": 0.0,
+      "categorical_profile__housing__other": 0.0,
+      "categorical_profile__loan__unknown": 0.0,
+      "categorical_profile__loan__other": 0.0,
+      "contact_timing__contact__other": 0.0,
+      "contact_timing__month__other": 0.0,
+      "contact_timing__day_of_week__other": 0.0
+    }
+  },
+  "prediction_drift": {
+    "psi": 2.9503,
+    "status": "alert",
+    "reference_mean": 0.069,
+    "current_mean": 0.2542
+  },
+  "subgroups": {
+    "threshold": 0.10643303394317627,
+    "groups": {
+      "30_44": {
+        "rows": 94,
+        "selected_rate": 0.3085
+      },
+      "45_59": {
+        "rows": 35,
+        "selected_rate": 0.2286
+      },
+      "60plus": {
+        "rows": 30,
+        "selected_rate": 0.7667
+      },
+      "lt30": {
+        "rows": 41,
+        "selected_rate": 0.5366
+      }
+    },
+    "min_max_ratio": 0.2982,
+    "status": "alert"
+  },
+  "alerts": [
+    "data drift in 17 columns (max PSI 3.4269)",
+    "prediction drift (PSI 2.9503)",
+    "subgroup selection ratio 0.2982 below 0.8"
+  ],
+  "endpoint_kind": "real-time",
+  "capture_files": 1
+}

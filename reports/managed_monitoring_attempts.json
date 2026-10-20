@@ -1,0 +1,15 @@
+{
+  "clarify": {
+    "started": false,
+    "error": "ClientError: An error occurred (ValidationException) when calling the CreateProcessingJob operation: SageMaker Clarify processing is in maintenance mode and is not available to new customers. Existing customers ar"
+  },
+  "model_monitor_baseline": {
+    "job": "baseline-suggestion-job-2026-10-20-19-55-25-080",
+    "started": true,
+    "result": "Completed: statistics and constraints in s3://<bucket>/bank-campaign-mlops/model-monitor/baseline"
+  },
+  "monitoring_schedule": {
+    "started": false,
+    "error": "ClientError: An error occurred (ValidationException) when calling the CreateDataQualityJobDefinition operation: This operation is in maintenance mode and is not available to new customers. Existing customers are u"
+  }
+}
