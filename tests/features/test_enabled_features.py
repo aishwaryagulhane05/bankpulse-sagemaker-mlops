@@ -5,25 +5,16 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-import yaml
 
 import features  # noqa: F401  (registers every feature)
 from bankpulse_core.config import load_config
+from bankpulse_core.contract import load_contract
 from bankpulse_core.feature_base import Feature, FeatureError, check_inputs, resolve
 
-CONFIG_DIR = Path(__file__).resolve().parents[2] / 'config'
-
-
-def load_yaml(name):
-    with open(CONFIG_DIR / name, encoding='utf-8') as handle:
-        return yaml.safe_load(handle)
-
-
-ENABLED = load_config(CONFIG_DIR / 'data_prep.yaml')['features']
-CONTRACT = load_yaml('contract.yaml')
-# Columns features may read: every contract column except the target and forbidden ones.
-FORBIDDEN = CONTRACT['forbidden_columns']
-ALLOWED = [column for column in CONTRACT['columns'] if column != CONTRACT['target'] and column not in FORBIDDEN]
+CONFIG = load_config(Path(__file__).resolve().parents[2] / 'config' / 'data_prep.yaml')
+ENABLED = CONFIG['features']
+CONTRACT = load_contract(CONFIG['contract'])
+ALLOWED, FORBIDDEN = CONTRACT.allowed_columns, CONTRACT.forbidden_columns
 
 
 def test_config_resolves_to_twelve_unfitted_features_in_order():
@@ -39,8 +30,9 @@ def test_enabled_feature_passes_contract(feature):
 
 
 def test_contract_lists_every_dataset_column():
-    header = (CONFIG_DIR.parent / 'data/raw/bank-additional-full.csv').open(encoding='utf-8').readline()
-    assert list(CONTRACT['columns']) == [name.strip('"') for name in header.strip().split(';')]
+    with open(CONFIG['data']['path'], encoding='utf-8') as handle:
+        header = handle.readline()
+    assert list(CONTRACT.columns) == [name.strip('"') for name in header.strip().split(';')]
     assert len(ALLOWED) == 19
 
 
