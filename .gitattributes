@@ -1,0 +1,2 @@
+# Raw data is hashed for lineage: never convert its line endings, so the hash is the same on every OS.
+data/raw/** -text

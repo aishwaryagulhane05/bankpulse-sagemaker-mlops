@@ -1,0 +1,20 @@
+{
+  "source": "bank-additional-full.csv",
+  "source_sha256": "a0aebbad8652f76245a5556896747e15bfa718b1a87370be9fb7a3572068a329",
+  "rows": 41188,
+  "columns": 21,
+  "duplicate_rows": 12,
+  "positive_rate": 0.1127,
+  "missing_values": {},
+  "unknown_share": {
+    "job": 0.008,
+    "marital": 0.0019,
+    "education": 0.042,
+    "default": 0.2087,
+    "housing": 0.024,
+    "loan": 0.024
+  },
+  "sentinel_share": {
+    "pdays": 0.9632
+  }
+}
