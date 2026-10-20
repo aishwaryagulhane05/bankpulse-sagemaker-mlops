@@ -1,1 +1,30 @@
 # Data contract: allowed and forbidden columns, types, sentinel values and business rules
+
+# Target column; never used as a feature input.
+target: y
+
+# Columns features may read (the raw file's columns, minus the target and forbidden ones).
+allowed_columns:
+  - age
+  - job
+  - marital
+  - education
+  - default
+  - housing
+  - loan
+  - contact
+  - month
+  - day_of_week
+  - campaign
+  - pdays
+  - previous
+  - poutcome
+  - emp.var.rate
+  - cons.price.idx
+  - cons.conf.idx
+  - euribor3m
+  - nr.employed
+
+# Leakage: call duration is only known after the call ends, when the outcome is known too.
+forbidden_columns:
+  - duration
