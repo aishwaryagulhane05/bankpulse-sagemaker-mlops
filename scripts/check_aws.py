@@ -1,23 +1,24 @@
 """Check that this machine can reach the AWS lab, without printing any secret.
 
-Run in PowerShell from the repository folder, after pasting the lab credentials into
+Run from the repository folder, after pasting the lab credentials into
 ~/.aws/credentials under [bankpulse-lab] (see issue BP-400):
 
-    $env:AWS_PROFILE = "bankpulse-lab"
-    $env:BANKPULSE_ROLE_ARN = "arn:aws:iam::<account-id>:role/LabRole"
     .venv\\Scripts\\python scripts\\check_aws.py
 
-Checks, in order: credentials -> region -> LabRole ARN -> SageMaker access -> default bucket.
+The bankpulse-lab profile is picked automatically, and the role is LabRole in the signed-in
+account (set BANKPULSE_ROLE_ARN only to use a different role).
+
+Checks, in order: credentials -> region -> role -> SageMaker access -> default bucket.
 Note: the last check creates the SageMaker default bucket (sagemaker-<region>-<account>)
 if it doesn't exist yet. That bucket is where the later steps store data and models.
 """
 
-import os
 import re
 import sys
 
-import boto3
 from botocore.exceptions import ClientError, NoCredentialsError, ProfileNotFound
+
+from bankpulse_core.aws import lab_boto_session, lab_role
 
 ROLE_PATTERN = re.compile(r'^arn:aws:iam::\d{12}:role/\S+$')
 EXPIRED = ('ExpiredToken', 'ExpiredTokenException', 'InvalidClientTokenId', 'UnrecognizedClientException')
@@ -29,15 +30,14 @@ def fail(message: str) -> None:
 
 
 def main() -> None:
-    # Step 1: credentials. boto3 reads the profile named in AWS_PROFILE; keys are never printed.
-    profile = os.environ.get('AWS_PROFILE')
+    # Step 1: credentials, from the bankpulse-lab profile; keys are never printed.
     try:
-        session = boto3.Session()
+        session = lab_boto_session()
         identity = session.client('sts').get_caller_identity()
-    except ProfileNotFound:
-        fail(f'profile {profile!r} not found in ~/.aws/credentials or ~/.aws/config')
+    except ProfileNotFound as exc:
+        fail(f'{exc} (check ~/.aws/credentials and ~/.aws/config, without a .txt extension)')
     except NoCredentialsError:
-        fail('no credentials found: set $env:AWS_PROFILE = "bankpulse-lab" in this terminal')
+        fail('no credentials found: paste the lab values into ~/.aws/credentials under [bankpulse-lab]')
     except ClientError as exc:
         if exc.response['Error']['Code'] in EXPIRED:
             fail('credentials expired or invalid: start the lab and paste fresh values from AWS Details')
@@ -49,11 +49,10 @@ def main() -> None:
         fail('no region: add "region = us-east-1" under [profile bankpulse-lab] in ~/.aws/config')
     print(f'OK  region: {session.region_name}')
 
-    # Step 3: LabRole ARN. Outside Studio, get_execution_role() doesn't work, so the role
-    # SageMaker jobs run as comes from this environment variable.
-    role = os.environ.get('BANKPULSE_ROLE_ARN', '')
+    # Step 3: the role SageMaker jobs and endpoints run as.
+    role = lab_role(session)
     if not ROLE_PATTERN.match(role):
-        fail('set $env:BANKPULSE_ROLE_ARN to the LabRole ARN from IAM -> Roles -> LabRole')
+        fail(f'BANKPULSE_ROLE_ARN is not a role ARN: {role!r}')
     if role.split(':')[4] != identity['Account']:
         fail('BANKPULSE_ROLE_ARN belongs to a different account than the credentials')
     print(f'OK  role: {role.split("/")[-1]}')
